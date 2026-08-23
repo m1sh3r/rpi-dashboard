@@ -9,7 +9,10 @@ load_dotenv(dotenv_path=env_path)
 
 class Config:
     PORT = int(os.getenv("PORT", "3000"))
+    PC_STATUS_SERVER_PORT = int(os.getenv("PC_STATUS_SERVER_PORT", os.getenv("PORT", "3000")))
+    PC_STATUS_ENDPOINT = os.getenv("PC_STATUS_ENDPOINT", "http://localhost:3000/api/pc-status")
     PC_STATUS_TOKEN = os.getenv("PC_STATUS_TOKEN", "change-me")
+    PC_STATUS_REFRESH_MS = int(os.getenv("PC_STATUS_REFRESH_MS", "1000"))
     PC_STATUS_STALE_AFTER_MS = int(os.getenv("PC_STATUS_STALE_AFTER_MS", "30000"))
 
     YANDEX_WEATHER_API_KEY = os.getenv("YANDEX_WEATHER_API_KEY", "")

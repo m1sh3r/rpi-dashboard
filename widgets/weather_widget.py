@@ -2,7 +2,6 @@ import math
 from PyQt5.QtCore import (
     QEasingCurve,
     QPointF,
-    QPropertyAnimation,
     QRectF,
     QSize,
     Qt,
@@ -709,25 +708,48 @@ class FullWeatherWidget(QWidget):
 class WeatherWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setFixedHeight(460)
 
         self.compact = CompactWeatherWidget(self)
         self.full = FullWeatherWidget(self)
 
-        self.layout.addWidget(self.compact)
-        self.layout.addWidget(self.full)
+        self.compact_opacity = QGraphicsOpacityEffect(self.compact)
+        self.compact.setGraphicsEffect(self.compact_opacity)
+        self.full_opacity = QGraphicsOpacityEffect(self.full)
+        self.full.setGraphicsEffect(self.full_opacity)
 
-        self.set_compact_mode(False)
+        self.compact_opacity.setOpacity(0.0)
+        self.full_opacity.setOpacity(1.0)
+        self.compact.hide()
+        self.full.show()
 
-    def set_compact_mode(self, is_compact: bool):
-        if is_compact:
-            self.full.hide()
-            self.compact.show()
-        else:
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        w = self.width()
+        self.compact.setGeometry(0, 0, w, 70)
+        self.full.setGeometry(0, 0, w, 460)
+
+    def set_transition_progress(self, progress: float):
+        p = max(0.0, min(1.0, float(progress)))
+        self.compact_opacity.setOpacity(p)
+        self.full_opacity.setOpacity(1.0 - p)
+
+        if p <= 0.001:
             self.compact.hide()
             self.full.show()
+        elif p >= 0.999:
+            self.compact.show()
+            self.full.hide()
+        else:
+            self.compact.show()
+            self.full.show()
+
+        target_h = int(460.0 - (460.0 - 70.0) * p)
+        self.setFixedHeight(target_h)
+
+    def set_compact_mode(self, is_compact: bool):
+        self.set_transition_progress(1.0 if is_compact else 0.0)
 
     def update_data(self, data: dict):
         self.compact.set_data(data)

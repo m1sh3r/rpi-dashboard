@@ -26,10 +26,10 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 from PyQt5.QtCore import QEasingCurve, QPointF, Qt, QTimer, QVariantAnimation
 from PyQt5.QtGui import QBrush, QColor, QFont, QFontDatabase, QKeyEvent, QPainter, QRadialGradient
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QVBoxLayout, QWidget
 
 from config import config
-from api import WeatherClient
+from api import PcStatusClient, WeatherClient
 from api.constants import (
     CONDITION_TO_ICON,
     YANDEX_CONDITION_NAMES,
@@ -68,11 +68,18 @@ MOCK_CONDITIONS = [
 
 
 class DashboardWindow(QWidget):
-    def __init__(self, mock_weather: bool = False, auto_switch_sec: float = 0.0):
+    def __init__(
+        self,
+        mock_weather: bool = False,
+        mock_pc: bool = False,
+        auto_switch_sec: float = 0.0,
+    ):
         super().__init__()
-        self.is_pc_online = False
+        self.is_pc_online = mock_pc
         self.mock_weather = mock_weather
+        self.mock_pc = mock_pc
         self.mock_index = 0
+        self.transition_progress = 1.0 if mock_pc else 0.0
 
         self.setWindowTitle("RPI Dashboard")
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -99,7 +106,10 @@ class DashboardWindow(QWidget):
         self.weather = WeatherWidget(center_container)
         self.pc_status = PcStatusWidget(center_container)
 
-        self.center_layout.addWidget(self.weather, 1)
+        self.pc_status_opacity = QGraphicsOpacityEffect(self.pc_status)
+        self.pc_status.setGraphicsEffect(self.pc_status_opacity)
+
+        self.center_layout.addWidget(self.weather, 0, Qt.AlignTop)
         self.center_layout.addWidget(self.pc_status, 1)
 
         main_layout.addWidget(center_container, 1)
@@ -112,7 +122,19 @@ class DashboardWindow(QWidget):
         self.effects.setGeometry(0, 0, 1920, 480)
         self.effects.raise_()
 
-        self.set_online_state(self.is_pc_online)
+        bezier_curve = QEasingCurve(QEasingCurve.BezierSpline)
+        bezier_curve.addCubicBezierSegment(QPointF(0.075, 0.82), QPointF(0.165, 1.0), QPointF(1.0, 1.0))
+
+        self.online_transition_anim = QVariantAnimation(self)
+        self.online_transition_anim.setDuration(650)
+        self.online_transition_anim.setEasingCurve(bezier_curve)
+        self.online_transition_anim.valueChanged.connect(self._on_online_anim_step)
+
+        self.pc_client = PcStatusClient(mock_pc=self.mock_pc, parent=self)
+        self.pc_client.status_updated.connect(self.pc_status.update_data)
+        self.pc_client.online_changed.connect(self.set_online_state)
+
+        self.set_online_state(self.is_pc_online, animated=False)
 
         if self.mock_weather:
             self._apply_mock_condition(MOCK_CONDITIONS[0])
@@ -149,8 +171,8 @@ class DashboardWindow(QWidget):
         key = event.key()
         if key in (Qt.Key_Escape, Qt.Key_Q):
             self.close()
-        elif key == Qt.Key_O:
-            self.set_online_state(not self.is_pc_online)
+        elif key in (Qt.Key_O, Qt.Key_P):
+            self.pc_client.toggle_mock_online()
         elif self.mock_weather:
             if key in (Qt.Key_Space, Qt.Key_Right):
                 self.mock_index = (self.mock_index + 1) % len(MOCK_CONDITIONS)
@@ -272,19 +294,40 @@ class DashboardWindow(QWidget):
         self.bg_anim.valueChanged.connect(_on_step)
         self.bg_anim.start()
 
-    def set_online_state(self, is_online: bool):
-        self.is_pc_online = is_online
-        if is_online:
-            self.weather.set_compact_mode(True)
-            self.pc_status.show()
-        else:
-            self.weather.set_compact_mode(False)
+    def _on_online_anim_step(self, val):
+        p = float(val)
+        self.transition_progress = p
+        self.weather.set_transition_progress(p)
+        self.pc_status_opacity.setOpacity(p)
+        target_pc_h = int(380.0 * p)
+        self.pc_status.setFixedHeight(target_pc_h)
+        if p <= 0.001:
             self.pc_status.hide()
+        else:
+            self.pc_status.show()
+
+    def set_online_state(self, is_online: bool, animated: bool = True):
+        self.is_pc_online = is_online
+        target_p = 1.0 if is_online else 0.0
+
+        if not animated:
+            if self.online_transition_anim.state() == QVariantAnimation.Running:
+                self.online_transition_anim.stop()
+            self._on_online_anim_step(target_p)
+            return
+
+        if self.online_transition_anim.state() == QVariantAnimation.Running:
+            self.online_transition_anim.stop()
+
+        self.online_transition_anim.setStartValue(self.transition_progress)
+        self.online_transition_anim.setEndValue(target_p)
+        self.online_transition_anim.start()
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mock-weather", action="store_true")
+    parser.add_argument("--mock-pc", action="store_true")
     parser.add_argument("--auto-switch", type=float, default=0.0)
     args, _ = parser.parse_known_args()
 
@@ -298,10 +341,11 @@ def main():
     app = QApplication(sys.argv)
     load_fonts()
     app.setFont(get_inter_font(12, weight=400))
-    if not args.mock_weather:
+    if not (args.mock_weather or args.mock_pc):
         app.setOverrideCursor(Qt.BlankCursor)
     window = DashboardWindow(
         mock_weather=args.mock_weather,
+        mock_pc=args.mock_pc,
         auto_switch_sec=args.auto_switch,
     )
     window.show()
