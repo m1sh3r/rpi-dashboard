@@ -130,9 +130,14 @@ class DashboardWindow(QWidget):
         self.online_transition_anim.setEasingCurve(bezier_curve)
         self.online_transition_anim.valueChanged.connect(self._on_online_anim_step)
 
+        self.offline_debounce_timer = QTimer(self)
+        self.offline_debounce_timer.setSingleShot(True)
+        self.offline_debounce_timer.setInterval(1500)
+        self.offline_debounce_timer.timeout.connect(self._on_offline_debounce_timeout)
+
         self.pc_client = PcStatusClient(mock_pc=self.mock_pc, parent=self)
         self.pc_client.status_updated.connect(self.pc_status.update_data)
-        self.pc_client.online_changed.connect(self.set_online_state)
+        self.pc_client.online_changed.connect(self._handle_online_changed)
 
         self.set_online_state(self.is_pc_online, animated=False)
 
@@ -305,6 +310,19 @@ class DashboardWindow(QWidget):
             self.pc_status.hide()
         else:
             self.pc_status.show()
+
+    def _on_offline_debounce_timeout(self):
+        self.set_online_state(False, animated=True)
+        self.pc_status.reset()
+
+    def _handle_online_changed(self, is_online: bool):
+        if is_online:
+            if self.offline_debounce_timer.isActive():
+                self.offline_debounce_timer.stop()
+            self.set_online_state(True, animated=True)
+        else:
+            if self.is_pc_online and not self.offline_debounce_timer.isActive():
+                self.offline_debounce_timer.start()
 
     def set_online_state(self, is_online: bool, animated: bool = True):
         self.is_pc_online = is_online

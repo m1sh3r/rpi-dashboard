@@ -111,11 +111,15 @@ class PcStatusWorker(QThread):
 class PcStatusServerThread(QThread):
     status_received = pyqtSignal(dict)
 
-    def __init__(self, port: int = 3000, token: str = "", parent=None):
+    def __init__(self, port: int = 3000, token: str = "", stale_after_ms: int = 30000, parent=None):
         super().__init__(parent)
         self.port = port
         self.token = token
+        self.stale_after_ms = stale_after_ms
         self.httpd = None
+        self.last_payload = None
+        self.updated_at = None
+        self.last_received_ts = 0.0
 
     def run(self):
         worker = self
@@ -123,6 +127,32 @@ class PcStatusServerThread(QThread):
         class StatusHandler(BaseHTTPRequestHandler):
             def log_message(self, format, *args):
                 pass
+
+            def do_GET(self):
+                if self.path.rstrip("/") != "/api/pc-status":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+
+                now = time.time()
+                is_stale = (
+                    worker.last_payload is None
+                    or (now - worker.last_received_ts) > (worker.stale_after_ms / 1000.0)
+                )
+
+                response_data = {
+                    "data": None if is_stale else worker.last_payload,
+                    "online": not is_stale,
+                    "stale": is_stale,
+                    "updatedAt": worker.updated_at,
+                }
+                body = json.dumps(response_data).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
 
             def do_POST(self):
                 if self.path.rstrip("/") != "/api/pc-status":
@@ -141,8 +171,15 @@ class PcStatusServerThread(QThread):
                 body = self.rfile.read(length)
                 try:
                     payload = json.loads(body.decode("utf-8"))
+                    worker.updated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    worker.last_received_ts = time.time()
+                    if isinstance(payload, dict):
+                        if "data" in payload or "Data" in payload:
+                            worker.last_payload = payload.get("data") or payload.get("Data")
+                        else:
+                            worker.last_payload = payload
                     worker.status_received.emit(payload)
-                    self.send_response(200)
+                    self.send_response(202)
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
                     self.wfile.write(b'{"ok":true}')
@@ -276,7 +313,10 @@ class PcStatusClient(QObject):
 
         token = getattr(config, "PC_STATUS_TOKEN", "")
         port = getattr(config, "PC_STATUS_SERVER_PORT", getattr(config, "PORT", 3000))
-        self.server_thread = PcStatusServerThread(port=port, token=token, parent=self)
+        stale_after_ms = getattr(config, "PC_STATUS_STALE_AFTER_MS", 30000)
+        self.server_thread = PcStatusServerThread(
+            port=port, token=token, stale_after_ms=stale_after_ms, parent=self
+        )
         self.server_thread.status_received.connect(self._on_direct_push)
         self.server_thread.start()
 
@@ -288,15 +328,22 @@ class PcStatusClient(QObject):
     def _on_direct_push(self, payload: dict):
         if self.mock_pc:
             return
+
         if not payload.get("data") and not payload.get("Data"):
-            payload = {"online": True, "stale": False, "data": payload}
+            normalized = {"online": True, "stale": False, "data": payload}
         else:
-            payload["online"] = True
-            payload["stale"] = False
+            normalized = {
+                "online": True,
+                "stale": False,
+                "data": payload.get("data") or payload.get("Data"),
+            }
+
+        was_offline = not self._is_online
         self._last_received_ts = time.time()
-        self._last_payload = payload
+        self._last_payload = normalized
         self._set_online(True)
-        self.status_updated.emit(payload)
+        if was_offline:
+            self.status_updated.emit(normalized)
 
     def set_mock_mode(self, enabled: bool):
         self.mock_pc = enabled
@@ -325,25 +372,45 @@ class PcStatusClient(QObject):
             self.status_updated.emit(payload)
             return
 
-        if time.time() - self._last_received_ts > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
+        now = time.time()
+        is_stale = (
+            self._last_payload is None
+            or (now - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0)
+        )
+
+        if is_stale:
             if self._is_online:
                 self._set_online(False)
+        else:
+            self._set_online(True)
+            if self._last_payload:
+                self.status_updated.emit(self._last_payload)
 
         endpoint = getattr(config, "PC_STATUS_ENDPOINT", "")
-        if endpoint and not (self.worker and self.worker.isRunning()):
-            token = getattr(config, "PC_STATUS_TOKEN", "")
-            self.worker = PcStatusWorker(endpoint, token)
-            self.worker.finished.connect(self._on_fetch_success)
-            self.worker.failed.connect(self._on_fetch_failed)
-            self.worker.start()
+        server_port = getattr(config, "PC_STATUS_SERVER_PORT", getattr(config, "PORT", 3000))
+        is_internal_endpoint = f":{server_port}" in endpoint or "localhost" in endpoint or "127.0.0.1" in endpoint
+
+        if endpoint and not is_internal_endpoint and (now - self._last_received_ts > 1.0):
+            if not (self.worker and self.worker.isRunning()):
+                token = getattr(config, "PC_STATUS_TOKEN", "")
+                self.worker = PcStatusWorker(endpoint, token)
+                self.worker.finished.connect(self._on_fetch_success)
+                self.worker.failed.connect(self._on_fetch_failed)
+                self.worker.start()
 
     def _on_fetch_success(self, payload: dict):
         online = payload.get("online", False) and bool(payload.get("data"))
-        self._last_received_ts = time.time()
-        self._last_payload = payload
-        self._set_online(online)
-        self.status_updated.emit(payload)
+        if online:
+            was_offline = not self._is_online
+            self._last_received_ts = time.time()
+            self._last_payload = payload
+            self._set_online(True)
+            if was_offline:
+                self.status_updated.emit(payload)
+        else:
+            if (time.time() - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
+                self._set_online(False)
 
     def _on_fetch_failed(self, error_msg: str):
-        if time.time() - self._last_received_ts > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
+        if (time.time() - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
             self._set_online(False)

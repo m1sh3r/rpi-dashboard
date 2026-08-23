@@ -1,5 +1,5 @@
 import math
-from PyQt5.QtCore import QPointF, QRectF, QSize, Qt
+from PyQt5.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PyQt5.QtGui import (
     QBrush,
     QColor,
@@ -228,6 +228,12 @@ class PcStatusWidget(QWidget):
 
         self.disks_history: dict[str, list[float]] = {}
         self.disk_cards: list[MetricCard] = []
+        self.display_uptime = 0
+
+        self.uptime_timer = QTimer(self)
+        self.uptime_timer.setInterval(1000)
+        self.uptime_timer.timeout.connect(self._on_uptime_tick)
+        self.uptime_timer.start()
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -377,13 +383,20 @@ class PcStatusWidget(QWidget):
 
         return parsed
 
+    def _on_uptime_tick(self):
+        if self.display_uptime > 0:
+            self.display_uptime += 1
+            self.uptime_val_label.setText(format_duration(self.display_uptime))
+
     def update_data(self, payload: dict):
         if not payload or not payload.get("data"):
             return
         data = payload["data"]
 
-        uptime_sec = data.get("uptimeSeconds") or data.get("UptimeSeconds") or 0
-        self.uptime_val_label.setText(format_duration(uptime_sec))
+        new_uptime = int(data.get("uptimeSeconds") or data.get("UptimeSeconds") or 0)
+        if abs(self.display_uptime - new_uptime) > 2 or self.display_uptime == 0:
+            self.display_uptime = new_uptime
+        self.uptime_val_label.setText(format_duration(self.display_uptime))
 
         net = data.get("network") or data.get("Network") or {}
         tx = net.get("txBytesPerSecond") or net.get("TxBytesPerSecond") or 0
@@ -470,6 +483,7 @@ class PcStatusWidget(QWidget):
                 card.hide()
 
     def reset(self):
+        self.display_uptime = 0
         self.net_tx_val.setText("0 бит/с")
         self.net_rx_val.setText("0 бит/с")
         self.uptime_val_label.setText("0:00:00:00")
