@@ -128,11 +128,11 @@ class AnalogClock(QWidget):
 
         time_str = now.strftime("%H:%M:%S")
         painter.setPen(QColor(255, 255, 255, 160))
-        digi_font = QFont("Segoe UI", 8)
+        digi_font = QFont("Segoe UI", 10)
         digi_font.setItalic(True)
         painter.setFont(digi_font)
         painter.drawText(
-            QRectF(CENTER - 60, 182 - 12, 120, 20), Qt.AlignCenter, time_str
+            QRectF(CENTER - 60, 182 - 24, 120, 20), Qt.AlignCenter, time_str
         )
 
         painter.save()
