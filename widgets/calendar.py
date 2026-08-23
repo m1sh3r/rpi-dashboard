@@ -4,7 +4,7 @@ from PyQt5.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PyQt5.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import QWidget
 
-RUSSIAN_MONTHS = [
+MONTHS = [
     "",
     "Январь",
     "Февраль",
@@ -20,7 +20,7 @@ RUSSIAN_MONTHS = [
     "Декабрь",
 ]
 
-RUSSIAN_WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
 
 class CalendarWidget(QWidget):
@@ -55,7 +55,7 @@ class CalendarWidget(QWidget):
         year = today.year
         month = today.month
 
-        month_name = RUSSIAN_MONTHS[month]
+        month_name = MONTHS[month]
         header_text = f"{month_name} {year}"
 
         body_y = 56.0
@@ -100,7 +100,7 @@ class CalendarWidget(QWidget):
         weekday_font = QFont("Segoe UI", 22, QFont.Bold)
         painter.setFont(weekday_font)
 
-        for i, wd in enumerate(RUSSIAN_WEEKDAYS):
+        for i, wd in enumerate(WEEKDAYS):
             is_weekend = i >= 5
             x = i * col_w
             cell_rect = QRectF(x, body_y, col_w, weekdays_h)

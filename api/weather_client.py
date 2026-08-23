@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 from config import config
 from .constants import (
     CONDITION_TO_ICON,
-    RUSSIAN_WEEKDAYS_SHORT,
+    WEEKDAYS_SHORT,
     WMO_TO_YANDEX_CONDITION,
     YANDEX_CONDITION_NAMES,
     degree_to_wind_direction,
@@ -177,7 +177,7 @@ class WeatherWorker(QThread):
                 day_name = ""
                 try:
                     dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
-                    day_name = RUSSIAN_WEEKDAYS_SHORT[dt.weekday()]
+                    day_name = WEEKDAYS_SHORT[dt.weekday()]
                 except Exception:
                     day_name = f"Д{i}"
 

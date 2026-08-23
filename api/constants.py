@@ -85,7 +85,7 @@ YANDEX_CONDITION_NAMES = {
     "volcano": "Извержение вулкана",
 }
 
-RUSSIAN_WEEKDAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+WEEKDAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
 
 def degree_to_wind_direction(degree):
