@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 CACHE_DIR = BASE_DIR / ".cache" / "weather_icons"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-YANDEX_ICON_URL = "https://yastatic.net/weather/i/icons/funky/flat/{}.svg"
+YANDEX_ICON_URL = "https://yastatic.net/weather/i/icons/funky/dark/{}.svg"
 
 _RENDERER_CACHE = {}
 _PENDING_DOWNLOADS = set()
