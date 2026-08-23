@@ -87,7 +87,14 @@ class ForecastDayWidget(QWidget):
         layout.addWidget(self.icon_widget, 0, Qt.AlignCenter)
         layout.addWidget(self.temp_label)
 
-    def set_day_data(self, day_name: str, min_t: int, max_t: int, condition: str, icon_code: str = None):
+    def set_day_data(
+        self,
+        day_name: str,
+        min_t: int,
+        max_t: int,
+        condition: str,
+        icon_code: str = None,
+    ):
         self.day_label.setText(day_name)
         self.icon_widget.set_icon(icon_code, condition)
         self.temp_label.setText(f"{min_t:+}° / {max_t:+}°")
@@ -154,7 +161,9 @@ class FullWeatherWidget(QWidget):
         wind_dir = fact.get("wind_dir", "")
 
         self.main_icon.set_icon(icon_code, cond)
-        self.temp_label.setText(f"{temp:+}°C" if isinstance(temp, (int, float)) else f"{temp}°C")
+        self.temp_label.setText(
+            f"{temp:+}°C" if isinstance(temp, (int, float)) else f"{temp}°C"
+        )
         self.cond_label.setText(f"{cond_name} (ощущается как {feels_like}°C)")
         self.details_label.setText(
             f"Влажность: {humidity}%  |  Давление: {pressure} мм рт. ст.  |  Ветер: {wind_dir} {wind_speed} м/с"

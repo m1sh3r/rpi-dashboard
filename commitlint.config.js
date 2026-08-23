@@ -15,8 +15,8 @@ module.exports = {
         "chore",
         "revert",
         "build",
-        "ci"
-      ]
+        "ci",
+      ],
     ],
     "scope-enum": [
       2,
@@ -32,13 +32,13 @@ module.exports = {
         "config",
         "assets",
         "deps",
-        "docs"
-      ]
+        "docs",
+      ],
     ],
     "header-max-length": [2, "always", 120],
     "type-case": [2, "always", "lower-case"],
     "type-empty": [2, "never"],
     "subject-empty": [2, "never"],
-    "subject-case": [0]
-  }
+    "subject-case": [0],
+  },
 };

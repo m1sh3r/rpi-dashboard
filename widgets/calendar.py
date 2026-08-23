@@ -65,7 +65,9 @@ class CalendarWidget(QWidget):
         header_color.setAlpha(int(255 * 0.85))
         painter.setPen(header_color)
         painter.drawText(
-            QRectF(0.0, 2.0, w - 12.0, 26.0), Qt.AlignRight | Qt.AlignVCenter, header_text
+            QRectF(0.0, 2.0, w - 12.0, 26.0),
+            Qt.AlignRight | Qt.AlignVCenter,
+            header_text,
         )
 
         body_y = 32.0
@@ -112,13 +114,17 @@ class CalendarWidget(QWidget):
             painter.drawText(cell_rect, Qt.AlignCenter, wd)
 
             if i < 6:
-                painter.setPen(weekend_border_pen if (is_weekend or i == 4) else border_pen)
+                painter.setPen(
+                    weekend_border_pen if (is_weekend or i == 4) else border_pen
+                )
                 painter.drawLine(
                     QPointF(x + col_w, body_y), QPointF(x + col_w, body_y + weekdays_h)
                 )
 
         painter.setPen(border_pen)
-        painter.drawLine(QPointF(0.0, body_y + weekdays_h), QPointF(w, body_y + weekdays_h))
+        painter.drawLine(
+            QPointF(0.0, body_y + weekdays_h), QPointF(w, body_y + weekdays_h)
+        )
         painter.restore()
 
         painter.setPen(border_pen)
@@ -130,9 +136,13 @@ class CalendarWidget(QWidget):
         days_path.moveTo(0.0, days_y)
         days_path.lineTo(w, days_y)
         days_path.lineTo(w, days_y + days_h - r)
-        days_path.arcTo(QRectF(w - r * 2, days_y + days_h - r * 2, r * 2, r * 2), 0.0, -90.0)
+        days_path.arcTo(
+            QRectF(w - r * 2, days_y + days_h - r * 2, r * 2, r * 2), 0.0, -90.0
+        )
         days_path.lineTo(r, days_y + days_h)
-        days_path.arcTo(QRectF(0.0, days_y + days_h - r * 2, r * 2, r * 2), 270.0, -90.0)
+        days_path.arcTo(
+            QRectF(0.0, days_y + days_h - r * 2, r * 2, r * 2), 270.0, -90.0
+        )
         days_path.lineTo(0.0, days_y)
         days_path.closeSubpath()
 
@@ -195,13 +205,19 @@ class CalendarWidget(QWidget):
 
                 if col_idx < 6:
                     painter.setPen(
-                        weekend_border_pen if (is_weekend or col_idx == 4) else border_pen
+                        weekend_border_pen
+                        if (is_weekend or col_idx == 4)
+                        else border_pen
                     )
-                    painter.drawLine(QPointF(x + col_w, y), QPointF(x + col_w, y + row_h))
+                    painter.drawLine(
+                        QPointF(x + col_w, y), QPointF(x + col_w, y + row_h)
+                    )
 
                 if row_idx < row_count - 1:
                     painter.setPen(border_pen)
-                    painter.drawLine(QPointF(x, y + row_h), QPointF(x + col_w, y + row_h))
+                    painter.drawLine(
+                        QPointF(x, y + row_h), QPointF(x + col_w, y + row_h)
+                    )
 
         painter.restore()
 

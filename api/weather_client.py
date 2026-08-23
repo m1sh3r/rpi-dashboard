@@ -86,10 +86,15 @@ class WeatherWorker(QThread):
                             "temp": round(fact.get("temp", 0)),
                             "feels_like": round(fact.get("feels_like", 0)),
                             "condition": cond,
-                            "condition_name": YANDEX_CONDITION_NAMES.get(cond, fact.get("condition", "Ясно")),
-                            "icon": fact.get("icon") or CONDITION_TO_ICON.get(cond, "skc_d"),
+                            "condition_name": YANDEX_CONDITION_NAMES.get(
+                                cond, fact.get("condition", "Ясно")
+                            ),
+                            "icon": fact.get("icon")
+                            or CONDITION_TO_ICON.get(cond, "skc_d"),
                             "wind_speed": float(fact.get("wind_speed", 0)),
-                            "wind_dir": degree_to_wind_direction(fact.get("wind_angle", 0)),
+                            "wind_dir": degree_to_wind_direction(
+                                fact.get("wind_angle", 0)
+                            ),
                             "wind_angle": fact.get("wind_angle", 0),
                             "pressure_mm": fact.get("pressure_mm", 750),
                             "humidity": fact.get("humidity", 50),
@@ -109,19 +114,31 @@ class WeatherWorker(QThread):
                 resp.raise_for_status()
                 data = resp.json()
                 current = data.get("current", {})
-                condition = WMO_TO_YANDEX_CONDITION.get(current.get("weather_code", 0), "overcast")
+                condition = WMO_TO_YANDEX_CONDITION.get(
+                    current.get("weather_code", 0), "overcast"
+                )
                 payload = {
                     "source": "open-meteo",
                     "fact": {
                         "temp": round(current.get("temperature_2m", 0)),
-                        "feels_like": round(current.get("apparent_temperature", current.get("temperature_2m", 0))),
+                        "feels_like": round(
+                            current.get(
+                                "apparent_temperature", current.get("temperature_2m", 0)
+                            )
+                        ),
                         "condition": condition,
                         "condition_name": YANDEX_CONDITION_NAMES.get(condition, "Ясно"),
                         "icon": CONDITION_TO_ICON.get(condition, "skc_d"),
-                        "wind_speed": round(float(current.get("wind_speed_10m", 0)) / 3.6, 1),
-                        "wind_dir": degree_to_wind_direction(current.get("wind_direction_10m", 0)),
+                        "wind_speed": round(
+                            float(current.get("wind_speed_10m", 0)) / 3.6, 1
+                        ),
+                        "wind_dir": degree_to_wind_direction(
+                            current.get("wind_direction_10m", 0)
+                        ),
                         "wind_angle": current.get("wind_direction_10m", 0),
-                        "pressure_mm": round(float(current.get("pressure_msl", 1013.25)) * 0.750062),
+                        "pressure_mm": round(
+                            float(current.get("pressure_msl", 1013.25)) * 0.750062
+                        ),
                         "humidity": round(current.get("relative_humidity_2m", 50)),
                     },
                 }
@@ -153,7 +170,9 @@ class WeatherWorker(QThread):
             forecast_days = []
             start_idx = 1 if len(times) > 5 else 0
             for i in range(start_idx, min(len(times), start_idx + 5)):
-                f_cond = WMO_TO_YANDEX_CONDITION.get(codes[i] if i < len(codes) else 0, "clear")
+                f_cond = WMO_TO_YANDEX_CONDITION.get(
+                    codes[i] if i < len(codes) else 0, "clear"
+                )
                 date_str = times[i] if i < len(times) else ""
                 day_name = ""
                 try:
@@ -196,7 +215,9 @@ class WeatherClient(QObject):
 
         if CACHE_FILE.exists():
             try:
-                self._cached_payload = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+                self._cached_payload = json.loads(
+                    CACHE_FILE.read_text(encoding="utf-8")
+                )
             except Exception:
                 pass
 
@@ -207,7 +228,9 @@ class WeatherClient(QObject):
 
     def update_weather(self):
         if config.WEATHER_LAT is None or config.WEATHER_LON is None:
-            self.weather_error.emit("Координаты WEATHER_LAT и WEATHER_LON не заданы в .env")
+            self.weather_error.emit(
+                "Координаты WEATHER_LAT и WEATHER_LON не заданы в .env"
+            )
             return
         if self.worker and self.worker.isRunning():
             return

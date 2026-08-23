@@ -157,9 +157,7 @@ class AnalogClock(QWidget):
             )
         )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 10))
-        painter.setPen(
-            QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap)
-        )
+        painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, 50), QPointF(CENTER, 10))
         painter.restore()
 
@@ -176,9 +174,7 @@ class AnalogClock(QWidget):
             )
         )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))
-        painter.setPen(
-            QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap)
-        )
+        painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))
         painter.restore()
 
@@ -193,11 +189,7 @@ class AnalogClock(QWidget):
         painter.translate(CENTER, CENTER)
         painter.rotate(second_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(
-            QPen(
-                QColor(255, 39, 39), 2.0, Qt.SolidLine, Qt.RoundCap
-            )
-        )
+        painter.setPen(QPen(QColor(255, 39, 39), 2.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, 130), QPointF(CENTER, 5))
         painter.restore()
 
