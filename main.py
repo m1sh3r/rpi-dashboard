@@ -118,6 +118,9 @@ class DashboardWindow(QWidget):
             self.weather_client = WeatherClient(self)
             self.weather_client.weather_updated.connect(self._on_weather_updated)
             self.weather_client.weather_error.connect(self.weather.set_error)
+            cached = self.weather_client.get_cached_payload()
+            if cached:
+                self._on_weather_updated(cached)
             self.weather_client.update_weather()
 
     def resizeEvent(self, event):

@@ -21,29 +21,119 @@ CACHE_FILE = CACHE_DIR / "weather_cache.json"
 META_FILE = CACHE_DIR / "weather_request_meta.json"
 
 
-def can_make_yandex_request():
+def can_make_yandex_request() -> tuple[bool, dict]:
     today_key = datetime.date.today().strftime("%Y-%m-%d")
-    meta = {"dateKey": today_key, "count": 0}
+    meta = {"dateKey": today_key, "count": 0, "last_ts": 0.0, "disabled_until_ts": 0.0}
+
     if META_FILE.exists():
         try:
             data = json.loads(META_FILE.read_text(encoding="utf-8"))
             if data.get("dateKey") == today_key:
-                meta = data
+                meta["count"] = data.get("count", 0)
+                meta["last_ts"] = float(data.get("last_ts", 0.0))
+                meta["disabled_until_ts"] = float(data.get("disabled_until_ts", 0.0))
+            else:
+                meta["count"] = 0
+                meta["last_ts"] = float(data.get("last_ts", 0.0))
+                meta["disabled_until_ts"] = 0.0
         except Exception:
             pass
-    return meta.get("count", 0) < config.YANDEX_DAILY_LIMIT, meta
+
+    if time.time() < meta.get("disabled_until_ts", 0.0):
+        return False, meta
+
+    has_daily_budget = meta["count"] < config.YANDEX_DAILY_LIMIT
+    cooldown_passed = (time.time() - meta["last_ts"]) >= config.YANDEX_MIN_INTERVAL_SEC
+
+    return (has_daily_budget and cooldown_passed), meta
 
 
-def record_yandex_request(meta):
+def record_yandex_request(meta: dict):
     today_key = datetime.date.today().strftime("%Y-%m-%d")
     if meta.get("dateKey") != today_key:
-        meta = {"dateKey": today_key, "count": 1}
+        meta["dateKey"] = today_key
+        meta["count"] = 1
     else:
         meta["count"] = meta.get("count", 0) + 1
+
+    meta["last_ts"] = time.time()
     try:
         META_FILE.write_text(json.dumps(meta), encoding="utf-8")
     except Exception:
         pass
+
+
+def disable_yandex_temporarily(meta: dict, duration_sec: int = 21600):
+    meta["disabled_until_ts"] = time.time() + duration_sec
+    try:
+        META_FILE.write_text(json.dumps(meta), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def fetch_open_meteo(lat: float, lon: float) -> dict:
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m"
+        "&daily=weather_code,temperature_2m_max,temperature_2m_min"
+        "&timezone=auto"
+    )
+    headers = {"User-Agent": "rpi-dashboard/1.0 (https://github.com/mucxep/rpi-dashboard)"}
+    resp = requests.get(url, headers=headers, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+
+    current = data.get("current", {})
+    condition = WMO_TO_YANDEX_CONDITION.get(current.get("weather_code", 0), "overcast")
+    fact = {
+        "temp": round(current.get("temperature_2m", 0)),
+        "feels_like": round(
+            current.get("apparent_temperature", current.get("temperature_2m", 0))
+        ),
+        "condition": condition,
+        "condition_name": YANDEX_CONDITION_NAMES.get(condition, "Ясно"),
+        "icon": CONDITION_TO_ICON.get(condition, "skc_d"),
+        "wind_speed": round(float(current.get("wind_speed_10m", 0)) / 3.6, 1),
+        "wind_dir": degree_to_wind_direction(current.get("wind_direction_10m", 0)),
+        "wind_arrow": degree_to_wind_arrow(current.get("wind_direction_10m", 0)),
+        "wind_angle": current.get("wind_direction_10m", 0),
+        "pressure_mm": round(float(current.get("pressure_msl", 1013.25)) * 0.750062),
+        "humidity": round(current.get("relative_humidity_2m", 50)),
+    }
+
+    daily = data.get("daily", {})
+    times = daily.get("time", [])
+    codes = daily.get("weather_code", [])
+    temp_maxs = daily.get("temperature_2m_max", [])
+    temp_mins = daily.get("temperature_2m_min", [])
+
+    forecast_days = []
+    start_idx = 1 if len(times) > 5 else 0
+    for i in range(start_idx, min(len(times), start_idx + 5)):
+        f_cond = WMO_TO_YANDEX_CONDITION.get(
+            codes[i] if i < len(codes) else 0, "clear"
+        )
+        date_str = times[i] if i < len(times) else ""
+        day_name = ""
+        try:
+            dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+            day_name = WEEKDAYS_SHORT[dt.weekday()]
+        except Exception:
+            day_name = f"Д{i}"
+
+        forecast_days.append(
+            {
+                "date": date_str,
+                "day_name": day_name,
+                "max_temp": round(temp_maxs[i]) if i < len(temp_maxs) else 0,
+                "min_temp": round(temp_mins[i]) if i < len(temp_mins) else 0,
+                "condition": f_cond,
+                "cond_text": YANDEX_CONDITION_NAMES.get(f_cond, "Ясно"),
+                "icon": CONDITION_TO_ICON.get(f_cond, "skc_d"),
+            }
+        )
+
+    return {"fact": fact, "forecast": forecast_days}
 
 
 class WeatherWorker(QThread):
@@ -103,51 +193,26 @@ class WeatherWorker(QThread):
                             "pressure_mm": fact.get("pressure_mm", 750),
                             "humidity": fact.get("humidity", 50),
                         },
+                        "forecast": [],
                     }
+                    try:
+                        open_meteo_res = fetch_open_meteo(lat, lon)
+                        payload["forecast"] = open_meteo_res.get("forecast", [])
+                    except Exception:
+                        pass
+                elif resp.status_code in (401, 403, 429):
+                    # Key quota expired or blocked; disable Yandex for 6 hours
+                    disable_yandex_temporarily(meta, 21600)
             except Exception:
                 payload = None
 
         if not payload:
             try:
-                url = (
-                    f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-                    "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m"
-                    "&timezone=auto"
-                )
-                resp = requests.get(url, timeout=10)
-                resp.raise_for_status()
-                data = resp.json()
-                current = data.get("current", {})
-                condition = WMO_TO_YANDEX_CONDITION.get(
-                    current.get("weather_code", 0), "overcast"
-                )
+                open_meteo_res = fetch_open_meteo(lat, lon)
                 payload = {
                     "source": "open-meteo",
-                    "fact": {
-                        "temp": round(current.get("temperature_2m", 0)),
-                        "feels_like": round(
-                            current.get(
-                                "apparent_temperature", current.get("temperature_2m", 0)
-                            )
-                        ),
-                        "condition": condition,
-                        "condition_name": YANDEX_CONDITION_NAMES.get(condition, "Ясно"),
-                        "icon": CONDITION_TO_ICON.get(condition, "skc_d"),
-                        "wind_speed": round(
-                            float(current.get("wind_speed_10m", 0)) / 3.6, 1
-                        ),
-                        "wind_dir": degree_to_wind_direction(
-                            current.get("wind_direction_10m", 0)
-                        ),
-                        "wind_arrow": degree_to_wind_arrow(
-                            current.get("wind_direction_10m", 0)
-                        ),
-                        "wind_angle": current.get("wind_direction_10m", 0),
-                        "pressure_mm": round(
-                            float(current.get("pressure_msl", 1013.25)) * 0.750062
-                        ),
-                        "humidity": round(current.get("relative_humidity_2m", 50)),
-                    },
+                    "fact": open_meteo_res["fact"],
+                    "forecast": open_meteo_res["forecast"],
                 }
             except Exception as e:
                 if CACHE_FILE.exists():
@@ -159,49 +224,6 @@ class WeatherWorker(QThread):
                         pass
                 self.failed.emit(str(e))
                 return
-
-        try:
-            url = (
-                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-                "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto"
-            )
-            resp = requests.get(url, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            daily = data.get("daily", {})
-            times = daily.get("time", [])
-            codes = daily.get("weather_code", [])
-            temp_maxs = daily.get("temperature_2m_max", [])
-            temp_mins = daily.get("temperature_2m_min", [])
-
-            forecast_days = []
-            start_idx = 1 if len(times) > 5 else 0
-            for i in range(start_idx, min(len(times), start_idx + 5)):
-                f_cond = WMO_TO_YANDEX_CONDITION.get(
-                    codes[i] if i < len(codes) else 0, "clear"
-                )
-                date_str = times[i] if i < len(times) else ""
-                day_name = ""
-                try:
-                    dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
-                    day_name = WEEKDAYS_SHORT[dt.weekday()]
-                except Exception:
-                    day_name = f"Д{i}"
-
-                forecast_days.append(
-                    {
-                        "date": date_str,
-                        "day_name": day_name,
-                        "max_temp": round(temp_maxs[i]) if i < len(temp_maxs) else 0,
-                        "min_temp": round(temp_mins[i]) if i < len(temp_mins) else 0,
-                        "condition": f_cond,
-                        "cond_text": YANDEX_CONDITION_NAMES.get(f_cond, "Ясно"),
-                        "icon": CONDITION_TO_ICON.get(f_cond, "skc_d"),
-                    }
-                )
-            payload["forecast"] = forecast_days
-        except Exception:
-            payload["forecast"] = []
 
         try:
             CACHE_FILE.write_text(json.dumps(payload), encoding="utf-8")
@@ -229,9 +251,12 @@ class WeatherClient(QObject):
                 pass
 
         self.timer = QTimer(self)
-        self.timer.setInterval(config.YANDEX_WEATHER_REFRESH_MS)
+        self.timer.setInterval(config.WEATHER_REFRESH_MS)
         self.timer.timeout.connect(self.update_weather)
         self.timer.start()
+
+    def get_cached_payload(self) -> dict | None:
+        return self._cached_payload
 
     def update_weather(self):
         if config.WEATHER_LAT is None or config.WEATHER_LON is None:
