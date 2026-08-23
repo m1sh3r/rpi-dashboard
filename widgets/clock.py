@@ -92,6 +92,8 @@ class AnalogClock(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(220, 220)
+        self.dial_pixmap = None
+        self.cached_size = (0, 0)
         self.timer = QTimer(self)
         self.timer.setInterval(16)
         self.timer.timeout.connect(self.update)
@@ -100,17 +102,42 @@ class AnalogClock(QWidget):
     def sizeHint(self):
         return QSize(220, 220)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        painter.setRenderHint(QPainter.TextAntialiasing, True)
+    def _render_dial(self, w: float, h: float, scale: float):
+        from PyQt5.QtGui import QPixmap
+        pix = QPixmap(int(w), int(h))
+        pix.fill(Qt.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        p.translate(w / 2.0, h / 2.0)
+        p.scale(scale, scale)
+        p.translate(-CENTER, -CENTER)
 
+        major_pen = QPen(QColor(242, 242, 242, int(255 * 0.75)), 2.0, Qt.SolidLine, Qt.RoundCap)
+        minor_pen = QPen(QColor(242, 242, 242, int(255 * 0.50)), 1.0, Qt.SolidLine, Qt.RoundCap)
+
+        for tick in MINUTE_TICKS:
+            p.setPen(major_pen if tick["is_major"] else minor_pen)
+            p.drawLine(QPointF(tick["x1"], tick["y1"]), QPointF(tick["x2"], tick["y2"]))
+        p.end()
+        return pix
+
+    def paintEvent(self, event):
         w = float(self.width())
         h = float(self.height())
         side = min(w, h)
         scale = side / 220.0
         center_x = w / 2.0
         center_y = h / 2.0
+
+        if self.dial_pixmap is None or self.cached_size != (self.width(), self.height()):
+            self.dial_pixmap = self._render_dial(w, h, scale)
+            self.cached_size = (self.width(), self.height())
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setRenderHint(QPainter.TextAntialiasing, True)
+
+        painter.drawPixmap(0, 0, self.dial_pixmap)
 
         now = datetime.datetime.now()
         sec_frac = now.microsecond / 1_000_000.0
@@ -128,17 +155,6 @@ class AnalogClock(QWidget):
         painter.scale(scale, scale)
         painter.translate(-CENTER, -CENTER)
 
-        for tick in MINUTE_TICKS:
-            is_major = tick["is_major"]
-            alpha = int(255 * (0.75 if is_major else 0.50))
-            width = 2.0 if is_major else 1.0
-            pen = QPen(QColor(242, 242, 242, alpha), width)
-            pen.setCapStyle(Qt.RoundCap)
-            painter.setPen(pen)
-            painter.drawLine(
-                QPointF(tick["x1"], tick["y1"]), QPointF(tick["x2"], tick["y2"])
-            )
-
         time_str = now.strftime("%H:%M:%S")
         painter.setPen(QColor(255, 255, 255, 160))
         digi_font = QFont(self.font())
@@ -153,23 +169,9 @@ class AnalogClock(QWidget):
         painter.translate(CENTER, CENTER)
         painter.rotate(minute_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(
-            QPen(
-                QColor(242, 242, 242),
-                8.0,
-                Qt.SolidLine,
-                Qt.RoundCap,
-            )
-        )
+        painter.setPen(QPen(QColor(242, 242, 242), 8.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 50))
-        painter.setPen(
-            QPen(
-                QColor(255, 255, 255),
-                8.0,
-                Qt.SolidLine,
-                Qt.RoundCap,
-            )
-        )
+        painter.setPen(QPen(QColor(255, 255, 255), 8.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 10))
         painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, 50), QPointF(CENTER, 10))
@@ -179,14 +181,7 @@ class AnalogClock(QWidget):
         painter.translate(CENTER, CENTER)
         painter.rotate(hour_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(
-            QPen(
-                QColor(242, 242, 242),
-                8.0,
-                Qt.SolidLine,
-                Qt.RoundCap,
-            )
-        )
+        painter.setPen(QPen(QColor(242, 242, 242), 8.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))
         painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))

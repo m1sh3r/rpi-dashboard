@@ -64,12 +64,31 @@ class WeatherEffectsWidget(QWidget):
         self.w = 1920.0
         self.h = 480.0
 
+        self.cloud_pixmap = self._create_cloud_texture(256)
+
         self.timer = QTimer(self)
         self.timer.setInterval(33)
         self.timer.timeout.connect(self._on_tick)
         self.timer.start()
 
         self._recreate_particles()
+
+    def _create_cloud_texture(self, size: int):
+        from PyQt5.QtGui import QPixmap
+        pix = QPixmap(size, size)
+        pix.fill(Qt.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        half = size / 2.0
+        grad = QRadialGradient(half, half, half)
+        grad.setColorAt(0.0, QColor(180, 195, 215, 200))
+        grad.setColorAt(0.5, QColor(150, 165, 185, 90))
+        grad.setColorAt(1.0, QColor(150, 165, 185, 0))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QBrush(grad))
+        p.drawEllipse(0, 0, size, size)
+        p.end()
+        return pix
 
     def set_weather_params(self, condition: str, wind_speed: float = 2.0, wind_angle: float = 270.0):
         if condition != self.condition or abs(wind_speed - self.wind_speed) > 0.5:
@@ -431,15 +450,16 @@ class WeatherEffectsWidget(QWidget):
                 painter.drawEllipse(QPointF(p["x"], p["y"]), p["radius"], p["radius"])
 
             elif ptype == "cloud":
-                current_op = op * (1.0 + math.sin(p["phase"]) * 0.1)
+                current_op = min(op * (1.0 + math.sin(p["phase"]) * 0.1), 0.25)
                 rad = p["radius"]
-                grad = QRadialGradient(p["x"], p["y"], rad)
-                grad.setColorAt(0.0, QColor(180, 195, 215, int(min(current_op * 0.65, 0.25) * 255)))
-                grad.setColorAt(0.5, QColor(150, 165, 185, int(min(current_op * 0.35, 0.15) * 255)))
-                grad.setColorAt(1.0, QColor(150, 165, 185, 0))
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(QBrush(grad))
-                painter.drawEllipse(QPointF(p["x"], p["y"]), rad, rad)
+                painter.save()
+                painter.setOpacity(current_op)
+                painter.drawPixmap(
+                    QRectF(p["x"] - rad, p["y"] - rad, rad * 2, rad * 2),
+                    self.cloud_pixmap,
+                    QRectF(0, 0, 256, 256),
+                )
+                painter.restore()
 
             elif ptype == "dust":
                 current_op = min(op * (1.0 + math.sin(p["pulse_phase"]) * 0.5), p["max_opacity"])
