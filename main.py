@@ -25,7 +25,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QFontDatabase, QKeyEvent
+from PyQt5.QtGui import QBrush, QColor, QFont, QFontDatabase, QKeyEvent, QPainter, QRadialGradient
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from config import config
@@ -42,6 +42,7 @@ from widgets import (
     PcStatusWidget,
     WeatherEffectsWidget,
     WeatherWidget,
+    get_dashboard_rounded_path,
 )
 
 MOCK_CONDITIONS = [
@@ -73,11 +74,15 @@ class DashboardWindow(QWidget):
 
         self.setWindowTitle("RPI Dashboard")
         self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setFixedSize(1920, 480)
-        self.setStyleSheet("DashboardWindow { background-color: #0b0d19; color: #ffffff; }")
+        self.setStyleSheet("DashboardWindow { color: #ffffff; }")
+
+        self.bg_start = QColor("#2c241c")
+        self.bg_end = QColor("#1c1814")
 
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(10, 10, 5, 10)
         main_layout.setSpacing(20)
 
         self.calendar = CalendarWidget(self)
@@ -126,6 +131,17 @@ class DashboardWindow(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.effects.setGeometry(self.rect())
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        w = float(self.width())
+        h = float(self.height())
+        path = get_dashboard_rounded_path(w, h)
+        grad = QRadialGradient(w * 0.5, h * 0.2, max(w, h) * 0.8, w * 0.5, h * 0.2)
+        grad.setColorAt(0.0, self.bg_start)
+        grad.setColorAt(1.0, self.bg_end)
+        painter.fillPath(path, QBrush(grad))
 
     def keyPressEvent(self, event: QKeyEvent):
         key = event.key()
@@ -206,16 +222,21 @@ class DashboardWindow(QWidget):
 
     def _update_background_theme(self, condition: str):
         if condition in ["partly-cloudy", "cloudy", "overcast", "fog"]:
-            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #22282d, stop:1 #161819)"
+            self.bg_start = QColor("#22282d")
+            self.bg_end = QColor("#161819")
         elif condition in ["light-rain", "rain", "heavy-rain", "showers", "sleet"]:
-            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #21242d, stop:1 #131417)"
+            self.bg_start = QColor("#21242d")
+            self.bg_end = QColor("#131417")
         elif condition in ["light-snow", "snow", "snowfall", "hail"]:
-            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #242c2e, stop:1 #171a1b)"
+            self.bg_start = QColor("#242c2e")
+            self.bg_end = QColor("#171a1b")
         elif condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]:
-            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #251e28, stop:1 #141116)"
+            self.bg_start = QColor("#251e28")
+            self.bg_end = QColor("#141116")
         else:
-            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #2c241c, stop:1 #1c1814)"
-        self.setStyleSheet(f"DashboardWindow {{ background: {bg}; color: #ffffff; }}")
+            self.bg_start = QColor("#2c241c")
+            self.bg_end = QColor("#1c1814")
+        self.update()
 
     def set_online_state(self, is_online: bool):
         self.is_pc_online = is_online

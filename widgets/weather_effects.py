@@ -2,8 +2,28 @@ import math
 import random
 import time
 from PyQt5.QtCore import QPointF, QRectF, Qt, QTimer
-from PyQt5.QtGui import QBrush, QColor, QPainter, QPen, QRadialGradient
+from PyQt5.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QRadialGradient
 from PyQt5.QtWidgets import QWidget
+
+
+def get_dashboard_rounded_path(w: float, h: float, r_left: float = 36.0, r_right: float = 240.0) -> QPainterPath:
+    r_tl = min(r_left, w / 2.0, h / 2.0)
+    r_bl = min(r_left, w / 2.0, h / 2.0)
+    r_tr = min(r_right, w / 2.0, h / 2.0)
+    r_br = min(r_right, w / 2.0, h / 2.0)
+
+    path = QPainterPath()
+    path.moveTo(r_tl, 0)
+    path.lineTo(w - r_tr, 0)
+    path.arcTo(w - 2 * r_tr, 0, 2 * r_tr, 2 * r_tr, 90, -90)
+    path.lineTo(w, h - r_br)
+    path.arcTo(w - 2 * r_br, h - 2 * r_br, 2 * r_br, 2 * r_br, 0, -90)
+    path.lineTo(r_bl, h)
+    path.arcTo(0, h - 2 * r_bl, 2 * r_bl, 2 * r_bl, 270, -90)
+    path.lineTo(0, r_tl)
+    path.arcTo(0, 0, 2 * r_tl, 2 * r_tl, 180, -90)
+    path.closeSubpath()
+    return path
 
 RAIN_CONFIG = {
     "layers": [
@@ -406,6 +426,9 @@ class WeatherEffectsWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
+
+        clip_path = get_dashboard_rounded_path(float(self.width()), float(self.height()))
+        painter.setClipPath(clip_path)
 
         if self.flash_intensity > 0.01:
             alpha = int(min(self.flash_intensity, 1.0) * 255 * 0.35)
