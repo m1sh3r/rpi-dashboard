@@ -581,7 +581,7 @@ class FullWeatherWidget(QWidget):
             font_size=48,
             font_weight=400,
             color=QColor(255, 255, 255, int(255 * 0.85)),
-            alignment=Qt.AlignRight | Qt.AlignVCenter,
+            alignment=Qt.AlignLeft | Qt.AlignVCenter,
             word_wrap=True,
             parent=self,
         )
@@ -597,6 +597,7 @@ class FullWeatherWidget(QWidget):
             font_size=80,
             font_weight=700,
             color=QColor(255, 255, 255, int(255 * 0.95)),
+            alignment=Qt.AlignLeft | Qt.AlignVCenter,
             parent=self,
         )
 
@@ -606,6 +607,7 @@ class FullWeatherWidget(QWidget):
             font_weight=400,
             italic=True,
             color=QColor(255, 255, 255, int(255 * 0.75)),
+            alignment=Qt.AlignLeft | Qt.AlignVCenter,
             parent=self,
         )
 
@@ -613,7 +615,7 @@ class FullWeatherWidget(QWidget):
         temp_box.addWidget(self.feels_label)
 
         self.hero_layout.addStretch(1)
-        self.hero_layout.addWidget(self.cond_label, 0, Qt.AlignRight | Qt.AlignVCenter)
+        self.hero_layout.addWidget(self.cond_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
         self.hero_layout.addWidget(self.main_icon, 0, Qt.AlignCenter)
         self.hero_layout.addLayout(temp_box, 0)
         self.hero_layout.addStretch(1)
