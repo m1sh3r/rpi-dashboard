@@ -82,7 +82,7 @@ class DashboardWindow(QWidget):
         self.bg_end = QColor("#1c1814")
 
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 5, 10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(20)
 
         self.calendar = CalendarWidget(self)
