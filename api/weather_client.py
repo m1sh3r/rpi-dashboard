@@ -10,6 +10,7 @@ from .constants import (
     WEEKDAYS_SHORT,
     WMO_TO_YANDEX_CONDITION,
     YANDEX_CONDITION_NAMES,
+    degree_to_wind_arrow,
     degree_to_wind_direction,
 )
 
@@ -95,6 +96,9 @@ class WeatherWorker(QThread):
                             "wind_dir": degree_to_wind_direction(
                                 fact.get("wind_angle", 0)
                             ),
+                            "wind_arrow": degree_to_wind_arrow(
+                                fact.get("wind_angle", 0)
+                            ),
                             "wind_angle": fact.get("wind_angle", 0),
                             "pressure_mm": fact.get("pressure_mm", 750),
                             "humidity": fact.get("humidity", 50),
@@ -133,6 +137,9 @@ class WeatherWorker(QThread):
                             float(current.get("wind_speed_10m", 0)) / 3.6, 1
                         ),
                         "wind_dir": degree_to_wind_direction(
+                            current.get("wind_direction_10m", 0)
+                        ),
+                        "wind_arrow": degree_to_wind_arrow(
                             current.get("wind_direction_10m", 0)
                         ),
                         "wind_angle": current.get("wind_direction_10m", 0),

@@ -109,3 +109,26 @@ def degree_to_wind_direction(degree):
     if deg >= 292.5 and deg < 337.5:
         return "СЗ"
     return "Штиль"
+
+
+def degree_to_wind_arrow(degree):
+    if degree is None:
+        return ""
+    deg = (float(degree) + 360) % 360
+    if deg >= 337.5 or deg < 22.5:
+        return "↓"
+    if deg >= 22.5 and deg < 67.5:
+        return "↙"
+    if deg >= 67.5 and deg < 112.5:
+        return "←"
+    if deg >= 112.5 and deg < 157.5:
+        return "↖"
+    if deg >= 157.5 and deg < 202.5:
+        return "↑"
+    if deg >= 202.5 and deg < 247.5:
+        return "↗"
+    if deg >= 247.5 and deg < 292.5:
+        return "→"
+    if deg >= 292.5 and deg < 337.5:
+        return "↘"
+    return ""
