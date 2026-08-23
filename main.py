@@ -17,7 +17,10 @@ if sys.platform == "win32":
         except Exception:
             pass
 
+from pathlib import Path
+
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from config import config
@@ -87,6 +90,16 @@ class DashboardWindow(QWidget):
             self.pc_status.hide()
 
 
+def load_fonts():
+    fonts_dir = Path(__file__).resolve().parent / "fonts"
+    if not fonts_dir.exists():
+        return
+    static_dir = fonts_dir / "Inter" / "static"
+    search_dir = static_dir if static_dir.exists() else fonts_dir
+    for font_file in search_dir.rglob("*.ttf"):
+        QFontDatabase.addApplicationFont(str(font_file))
+
+
 def main():
     if hasattr(Qt, "AA_DisableHighDpiScaling"):
         QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
@@ -96,6 +109,8 @@ def main():
         QApplication.setAttribute(Qt.AA_Use96Dpi, True)
 
     app = QApplication(sys.argv)
+    load_fonts()
+    app.setFont(QFont("Inter"))
     app.setOverrideCursor(Qt.BlankCursor)
     window = DashboardWindow()
     window.show()

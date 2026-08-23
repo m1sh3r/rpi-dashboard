@@ -141,7 +141,8 @@ class AnalogClock(QWidget):
 
         time_str = now.strftime("%H:%M:%S")
         painter.setPen(QColor(255, 255, 255, 160))
-        digi_font = QFont("Segoe UI", 10)
+        digi_font = QFont(self.font())
+        digi_font.setPointSize(10)
         digi_font.setItalic(True)
         painter.setFont(digi_font)
         painter.drawText(
