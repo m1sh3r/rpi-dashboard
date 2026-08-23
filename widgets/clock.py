@@ -74,6 +74,17 @@ def precompute_minute_ticks():
     return ticks
 
 
+def spring_tick(t_sec: float) -> float:
+    if t_sec >= 0.20:
+        return 1.0
+    omega = 80.0
+    zeta = 0.4
+    omega_d = omega * math.sqrt(1.0 - zeta * zeta)
+    decay = math.exp(-zeta * omega * t_sec)
+    osc = math.cos(omega_d * t_sec) + (zeta * omega / omega_d) * math.sin(omega_d * t_sec)
+    return 1.0 - decay * osc
+
+
 MINUTE_TICKS = precompute_minute_ticks()
 
 
@@ -82,7 +93,7 @@ class AnalogClock(QWidget):
         super().__init__(parent)
         self.setMinimumSize(220, 220)
         self.timer = QTimer(self)
-        self.timer.setInterval(33)
+        self.timer.setInterval(16)
         self.timer.timeout.connect(self.update)
         self.timer.start()
 
@@ -102,11 +113,13 @@ class AnalogClock(QWidget):
         center_y = h / 2.0
 
         now = datetime.datetime.now()
-        second = now.second + now.microsecond / 1_000_000.0
-        minute = now.minute + second / 60.0
+        sec_frac = now.microsecond / 1_000_000.0
+        sec_progress = spring_tick(sec_frac)
+        second_angle = ((now.second - 1 + sec_progress) % 60) * 6.0
+
+        minute = now.minute + now.second / 60.0
         hour = (now.hour % 12) + minute / 60.0
 
-        second_angle = second * 6.0
         minute_angle = minute * 6.0
         hour_angle = (hour % 12) * 30.0 + (minute % 60) * 0.5
 
