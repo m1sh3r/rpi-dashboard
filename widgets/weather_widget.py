@@ -17,9 +17,17 @@ class SvgIconWidget(QWidget):
         super().__init__(parent)
         self.setFixedSize(size, size)
         self.renderer = None
+        self.icon_code = None
+        self.condition = None
 
     def set_icon(self, icon_code: str = None, condition: str = None):
-        self.renderer = get_icon_renderer(icon_code, condition)
+        self.icon_code = icon_code
+        self.condition = condition
+        self.renderer = get_icon_renderer(icon_code, condition, on_loaded=self._on_icon_loaded)
+        self.update()
+
+    def _on_icon_loaded(self):
+        self.renderer = get_icon_renderer(self.icon_code, self.condition)
         self.update()
 
     def paintEvent(self, event):

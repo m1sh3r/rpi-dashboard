@@ -17,31 +17,64 @@ if sys.platform == "win32":
         except Exception:
             pass
 
+import argparse
 from pathlib import Path
+import random
+import signal
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QFontDatabase
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QFont, QFontDatabase, QKeyEvent
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from config import config
 from api import WeatherClient
+from api.constants import (
+    CONDITION_TO_ICON,
+    YANDEX_CONDITION_NAMES,
+    degree_to_wind_arrow,
+    degree_to_wind_direction,
+)
 from widgets import (
     AnalogClock,
     CalendarWidget,
     PcStatusWidget,
+    WeatherEffectsWidget,
     WeatherWidget,
 )
 
+MOCK_CONDITIONS = [
+    "clear",
+    "partly-cloudy",
+    "cloudy",
+    "overcast",
+    "light-rain",
+    "rain",
+    "heavy-rain",
+    "showers",
+    "sleet",
+    "light-snow",
+    "snow",
+    "snowfall",
+    "hail",
+    "thunderstorm",
+    "thunderstorm-with-rain",
+    "thunderstorm-with-hail",
+]
+
 
 class DashboardWindow(QWidget):
-    def __init__(self):
+    def __init__(self, mock_weather: bool = False, auto_switch_sec: float = 0.0):
         super().__init__()
         self.is_pc_online = False
+        self.mock_weather = mock_weather
+        self.mock_index = 0
 
         self.setWindowTitle("RPI Dashboard")
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setFixedSize(1920, 480)
-        self.setStyleSheet("background-color: #000000; color: #ffffff;")
+        self.setStyleSheet("DashboardWindow { background-color: #0b0d19; color: #ffffff; }")
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -68,12 +101,117 @@ class DashboardWindow(QWidget):
         self.clock.setFixedWidth(460)
         main_layout.addWidget(self.clock)
 
+        self.effects = WeatherEffectsWidget(self)
+        self.effects.setGeometry(0, 0, 1920, 480)
+        self.effects.raise_()
+
         self.set_online_state(self.is_pc_online)
 
-        self.weather_client = WeatherClient(self)
-        self.weather_client.weather_updated.connect(self.weather.update_data)
-        self.weather_client.weather_error.connect(self.weather.set_error)
-        self.weather_client.update_weather()
+        if self.mock_weather:
+            self._apply_mock_condition(MOCK_CONDITIONS[0])
+            self.auto_timer = QTimer(self)
+            if auto_switch_sec > 0:
+                self.auto_timer.setInterval(int(auto_switch_sec * 1000))
+                self.auto_timer.timeout.connect(self._next_random_weather)
+                self.auto_timer.start()
+        else:
+            self.weather_client = WeatherClient(self)
+            self.weather_client.weather_updated.connect(self._on_weather_updated)
+            self.weather_client.weather_error.connect(self.weather.set_error)
+            self.weather_client.update_weather()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.effects.setGeometry(self.rect())
+
+    def keyPressEvent(self, event: QKeyEvent):
+        key = event.key()
+        if key in (Qt.Key_Escape, Qt.Key_Q):
+            self.close()
+        elif key == Qt.Key_O:
+            self.set_online_state(not self.is_pc_online)
+        elif key in (Qt.Key_Space, Qt.Key_Right):
+            self.mock_index = (self.mock_index + 1) % len(MOCK_CONDITIONS)
+            self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
+        elif key == Qt.Key_Left:
+            self.mock_index = (self.mock_index - 1) % len(MOCK_CONDITIONS)
+            self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
+        elif key == Qt.Key_R:
+            self._next_random_weather()
+        elif key == Qt.Key_A and hasattr(self, "auto_timer"):
+            if self.auto_timer.isActive():
+                self.auto_timer.stop()
+            else:
+                self.auto_timer.start(5000)
+        else:
+            super().keyPressEvent(event)
+
+    def _next_random_weather(self):
+        cond = random.choice(MOCK_CONDITIONS)
+        self.mock_index = MOCK_CONDITIONS.index(cond)
+        self._apply_mock_condition(cond)
+
+    def _apply_mock_condition(self, condition: str):
+        is_snow = "snow" in condition or condition == "sleet"
+        is_rain = "rain" in condition or condition in ["showers", "sleet", "hail"]
+        temp = random.randint(-12, -2) if is_snow else (random.randint(14, 26) if condition == "clear" else random.randint(4, 17))
+        feels = temp - random.randint(1, 4)
+        speed = round(random.uniform(1.2, 6.5), 1)
+        angle = random.randint(0, 360)
+        cond_name = YANDEX_CONDITION_NAMES.get(condition, condition)
+        icon_code = CONDITION_TO_ICON.get(condition, "skc_d")
+
+        forecast = []
+        for d in ["ПН", "ВТ", "СР", "ЧТ", "ПТ"]:
+            fc_cond = random.choice(MOCK_CONDITIONS)
+            forecast.append({
+                "day_name": d,
+                "min_temp": temp - random.randint(2, 5),
+                "max_temp": temp + random.randint(1, 4),
+                "condition": fc_cond,
+                "icon": CONDITION_TO_ICON.get(fc_cond, "skc_d"),
+            })
+
+        mock_data = {
+            "source": "mock",
+            "fact": {
+                "temp": temp,
+                "feels_like": feels,
+                "condition": condition,
+                "condition_name": cond_name,
+                "icon": icon_code,
+                "wind_speed": speed,
+                "wind_dir": degree_to_wind_direction(angle),
+                "wind_arrow": degree_to_wind_arrow(angle),
+                "wind_angle": angle,
+                "pressure_mm": random.randint(745, 760),
+                "humidity": random.randint(50, 95) if (is_rain or is_snow) else random.randint(35, 65),
+            },
+            "forecast": forecast,
+        }
+        self._on_weather_updated(mock_data)
+
+    def _on_weather_updated(self, data: dict):
+        self.weather.update_data(data)
+        fact = data.get("fact", {})
+        cond = fact.get("condition", "clear")
+        speed = float(fact.get("wind_speed", 2.0))
+        angle = float(fact.get("wind_angle", 270.0))
+        self.effects.set_weather_params(cond, speed, angle)
+        self._update_background_theme(cond)
+
+    def _update_background_theme(self, condition: str):
+        if condition in ["partly-cloudy", "cloudy", "overcast", "fog"]:
+            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #22282d, stop:1 #161819)"
+        elif condition in ["light-rain", "rain", "heavy-rain", "showers", "sleet"]:
+            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #21242d, stop:1 #131417)"
+        elif condition in ["light-snow", "snow", "snowfall", "hail"]:
+            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #242c2e, stop:1 #171a1b)"
+        elif condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]:
+            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #251e28, stop:1 #141116)"
+        else:
+            bg = "qradialgradient(cx:0.5, cy:0.2, radius:0.8, fx:0.5, fy:0.2, stop:0 #2c241c, stop:1 #1c1814)"
+        self.setStyleSheet(f"DashboardWindow {{ background: {bg}; color: #ffffff; }}")
 
     def set_online_state(self, is_online: bool):
         self.is_pc_online = is_online
@@ -96,6 +234,11 @@ def load_fonts():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mock-weather", action="store_true")
+    parser.add_argument("--auto-switch", type=float, default=0.0)
+    args, _ = parser.parse_known_args()
+
     if hasattr(Qt, "AA_DisableHighDpiScaling"):
         QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
     if hasattr(Qt, "AA_EnableHighDpiScaling"):
@@ -106,8 +249,12 @@ def main():
     app = QApplication(sys.argv)
     load_fonts()
     app.setFont(QFont("Inter"))
-    app.setOverrideCursor(Qt.BlankCursor)
-    window = DashboardWindow()
+    if not args.mock_weather:
+        app.setOverrideCursor(Qt.BlankCursor)
+    window = DashboardWindow(
+        mock_weather=args.mock_weather,
+        auto_switch_sec=args.auto_switch,
+    )
     window.show()
     sys.exit(app.exec_())
 
