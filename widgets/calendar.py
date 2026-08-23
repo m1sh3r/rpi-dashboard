@@ -58,23 +58,23 @@ class CalendarWidget(QWidget):
         month_name = RUSSIAN_MONTHS[month]
         header_text = f"{month_name} {year}"
 
-        header_font = QFont("Segoe UI", 13, QFont.Bold)
+        body_y = 56.0
+        body_h = h - body_y - 4.0
+        weekdays_h = 52.0
+        days_h = body_h - weekdays_h
+        r = 16.0
+
+        header_font = QFont("Segoe UI", 26, QFont.Bold)
         header_font.setItalic(True)
         painter.setFont(header_font)
         header_color = QColor(self.weather_text_color)
         header_color.setAlpha(int(255 * 0.85))
         painter.setPen(header_color)
         painter.drawText(
-            QRectF(0.0, 2.0, w - 12.0, 26.0),
+            QRectF(0.0, 0.0, w - 12.0, body_y),
             Qt.AlignRight | Qt.AlignVCenter,
             header_text,
         )
-
-        body_y = 32.0
-        body_h = h - body_y - 4.0
-        weekdays_h = 32.0
-        days_h = body_h - weekdays_h
-        r = 16.0
 
         border_pen = QPen(QColor(255, 255, 255, 20), 1.0)
         weekend_border_pen = QPen(QColor(239, 68, 68, 38), 1.0)
@@ -97,7 +97,7 @@ class CalendarWidget(QWidget):
         painter.drawRect(QRectF(0.0, body_y, w, weekdays_h))
 
         col_w = w / 7.0
-        weekday_font = QFont("Segoe UI", 11, QFont.Bold)
+        weekday_font = QFont("Segoe UI", 22, QFont.Bold)
         painter.setFont(weekday_font)
 
         for i, wd in enumerate(RUSSIAN_WEEKDAYS):
@@ -159,9 +159,9 @@ class CalendarWidget(QWidget):
         row_count = max(len(month_days), 6)
         row_h = days_h / float(row_count)
 
-        day_font_normal = QFont("Segoe UI", 12)
-        day_font_bold = QFont("Segoe UI", 12, QFont.Bold)
-        day_font_light = QFont("Segoe UI", 11)
+        day_font_normal = QFont("Segoe UI", 24)
+        day_font_bold = QFont("Segoe UI", 24, QFont.Bold)
+        day_font_light = QFont("Segoe UI", 22)
 
         for row_idx in range(row_count):
             week = month_days[row_idx] if row_idx < len(month_days) else []
