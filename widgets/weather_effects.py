@@ -52,15 +52,6 @@ CLOUD_CONFIG = {
     "op_max": 0.10,
 }
 
-CLEAR_CONFIG = {
-    "count": 22,
-    "speed_min": 0.08,
-    "speed_max": 0.25,
-    "rad_min": 0.7,
-    "rad_max": 2.0,
-    "op_min": 0.04,
-    "op_max": 0.18,
-}
 
 
 class WeatherEffectsWidget(QWidget):
@@ -127,7 +118,6 @@ class WeatherEffectsWidget(QWidget):
         is_hailing = self.condition in ["hail", "thunderstorm-with-hail"]
         is_thundering = self.condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]
         is_cloudy = self.condition in ["partly-cloudy", "cloudy", "overcast", "fog"]
-        is_clear = self.condition == "clear"
 
         rad = math.radians(self.wind_angle)
         wind_vx = -self.wind_speed * math.sin(rad)
@@ -248,23 +238,6 @@ class WeatherEffectsWidget(QWidget):
                     "phase_speed": random.uniform(0.0002, 0.0006),
                 })
 
-        if is_clear:
-            for _ in range(CLEAR_CONFIG["count"]):
-                target_op = random.uniform(CLEAR_CONFIG["op_min"], CLEAR_CONFIG["op_max"])
-                new_particles.append({
-                    "type": "dust",
-                    "x": random.uniform(0, self.w),
-                    "y": random.uniform(0, self.h),
-                    "speed_y": -random.uniform(CLEAR_CONFIG["speed_min"], CLEAR_CONFIG["speed_max"]),
-                    "speed_x": random.uniform(-0.1, 0.1),
-                    "radius": random.uniform(CLEAR_CONFIG["rad_min"], CLEAR_CONFIG["rad_max"]),
-                    "opacity": 0.0,
-                    "target_opacity": target_op,
-                    "dying": False,
-                    "max_opacity": random.uniform(0.05, 0.20),
-                    "pulse_speed": random.uniform(0.005, 0.025),
-                    "pulse_phase": random.uniform(0, math.pi * 2),
-                })
 
         self.particles.extend(new_particles)
 
@@ -396,16 +369,6 @@ class WeatherEffectsWidget(QWidget):
                     p["x"] = -p["radius"]
                     p["y"] = random.uniform(0, self.h * 0.7)
 
-            elif ptype == "dust":
-                p["pulse_phase"] += p["pulse_speed"] * dt
-                p["y"] += p["speed_y"] * dt
-                p["x"] += p["speed_x"] * dt
-                if p["y"] < -p["radius"] * 2 or p["x"] < -p["radius"] * 2 or p["x"] > self.w + p["radius"] * 2:
-                    if p["dying"]:
-                        p["opacity"] = 0
-                        continue
-                    p["y"] = self.h + p["radius"] * 2
-                    p["x"] = random.uniform(0, self.w)
 
             alive_particles.append(p)
 
@@ -484,11 +447,6 @@ class WeatherEffectsWidget(QWidget):
                 )
                 painter.restore()
 
-            elif ptype == "dust":
-                current_op = min(op * (1.0 + math.sin(p["pulse_phase"]) * 0.5), p["max_opacity"])
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(QColor(255, 230, 170, int(current_op * 255)))
-                painter.drawEllipse(QPointF(p["x"], p["y"]), p["radius"], p["radius"])
 
         painter.setPen(Qt.NoPen)
         for s in self.splashes:
