@@ -133,19 +133,20 @@ class DashboardWindow(QWidget):
             self.close()
         elif key == Qt.Key_O:
             self.set_online_state(not self.is_pc_online)
-        elif key in (Qt.Key_Space, Qt.Key_Right):
-            self.mock_index = (self.mock_index + 1) % len(MOCK_CONDITIONS)
-            self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
-        elif key == Qt.Key_Left:
-            self.mock_index = (self.mock_index - 1) % len(MOCK_CONDITIONS)
-            self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
-        elif key == Qt.Key_R:
-            self._next_random_weather()
-        elif key == Qt.Key_A and hasattr(self, "auto_timer"):
-            if self.auto_timer.isActive():
-                self.auto_timer.stop()
-            else:
-                self.auto_timer.start(5000)
+        elif self.mock_weather:
+            if key in (Qt.Key_Space, Qt.Key_Right):
+                self.mock_index = (self.mock_index + 1) % len(MOCK_CONDITIONS)
+                self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
+            elif key == Qt.Key_Left:
+                self.mock_index = (self.mock_index - 1) % len(MOCK_CONDITIONS)
+                self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
+            elif key == Qt.Key_R:
+                self._next_random_weather()
+            elif key == Qt.Key_A and hasattr(self, "auto_timer"):
+                if self.auto_timer.isActive():
+                    self.auto_timer.stop()
+                else:
+                    self.auto_timer.start(5000)
         else:
             super().keyPressEvent(event)
 
