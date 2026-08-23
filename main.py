@@ -24,7 +24,7 @@ import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QEasingCurve, QPointF, Qt, QTimer, QVariantAnimation
 from PyQt5.QtGui import QBrush, QColor, QFont, QFontDatabase, QKeyEvent, QPainter, QRadialGradient
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
@@ -43,6 +43,8 @@ from widgets import (
     WeatherEffectsWidget,
     WeatherWidget,
     get_dashboard_rounded_path,
+    get_inter_font,
+    load_fonts,
 )
 
 MOCK_CONDITIONS = [
@@ -222,21 +224,53 @@ class DashboardWindow(QWidget):
 
     def _update_background_theme(self, condition: str):
         if condition in ["partly-cloudy", "cloudy", "overcast", "fog"]:
-            self.bg_start = QColor("#22282d")
-            self.bg_end = QColor("#161819")
+            target_start = QColor("#22282d")
+            target_end = QColor("#161819")
         elif condition in ["light-rain", "rain", "heavy-rain", "showers", "sleet"]:
-            self.bg_start = QColor("#21242d")
-            self.bg_end = QColor("#131417")
+            target_start = QColor("#21242d")
+            target_end = QColor("#131417")
         elif condition in ["light-snow", "snow", "snowfall", "hail"]:
-            self.bg_start = QColor("#242c2e")
-            self.bg_end = QColor("#171a1b")
+            target_start = QColor("#242c2e")
+            target_end = QColor("#171a1b")
         elif condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]:
-            self.bg_start = QColor("#251e28")
-            self.bg_end = QColor("#141116")
+            target_start = QColor("#251e28")
+            target_end = QColor("#141116")
         else:
-            self.bg_start = QColor("#2c241c")
-            self.bg_end = QColor("#1c1814")
-        self.update()
+            target_start = QColor("#2c241c")
+            target_end = QColor("#1c1814")
+
+        if self.bg_start == target_start and self.bg_end == target_end:
+            return
+
+        if hasattr(self, "bg_anim") and self.bg_anim and self.bg_anim.state() == QVariantAnimation.Running:
+            self.bg_anim.stop()
+
+        start_c1, end_c1 = self.bg_start, target_start
+        start_c2, end_c2 = self.bg_end, target_end
+
+        self.bg_anim = QVariantAnimation(self)
+        self.bg_anim.setDuration(1200)
+        self.bg_anim.setStartValue(0.0)
+        self.bg_anim.setEndValue(1.0)
+        
+        bezier_curve = QEasingCurve(QEasingCurve.BezierSpline)
+        bezier_curve.addCubicBezierSegment(QPointF(0.075, 0.82), QPointF(0.165, 1.0), QPointF(1.0, 1.0))
+        self.bg_anim.setEasingCurve(bezier_curve)
+
+        def _lerp_color(c1: QColor, c2: QColor, t: float) -> QColor:
+            r = int(c1.red() + (c2.red() - c1.red()) * t)
+            g = int(c1.green() + (c2.green() - c1.green()) * t)
+            b = int(c1.blue() + (c2.blue() - c1.blue()) * t)
+            return QColor(r, g, b)
+
+        def _on_step(val):
+            t = float(val)
+            self.bg_start = _lerp_color(start_c1, end_c1, t)
+            self.bg_end = _lerp_color(start_c2, end_c2, t)
+            self.update()
+
+        self.bg_anim.valueChanged.connect(_on_step)
+        self.bg_anim.start()
 
     def set_online_state(self, is_online: bool):
         self.is_pc_online = is_online
@@ -246,16 +280,6 @@ class DashboardWindow(QWidget):
         else:
             self.weather.set_compact_mode(False)
             self.pc_status.hide()
-
-
-def load_fonts():
-    fonts_dir = Path(__file__).resolve().parent / "fonts"
-    if not fonts_dir.exists():
-        return
-    static_dir = fonts_dir / "Inter" / "static"
-    search_dir = static_dir if static_dir.exists() else fonts_dir
-    for font_file in search_dir.rglob("*.ttf"):
-        QFontDatabase.addApplicationFont(str(font_file))
 
 
 def main():
@@ -273,7 +297,7 @@ def main():
 
     app = QApplication(sys.argv)
     load_fonts()
-    app.setFont(QFont("Inter"))
+    app.setFont(get_inter_font(12, weight=400))
     if not args.mock_weather:
         app.setOverrideCursor(Qt.BlankCursor)
     window = DashboardWindow(

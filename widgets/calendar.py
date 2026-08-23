@@ -1,8 +1,9 @@
 import calendar
 import datetime
 from PyQt5.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PyQt5.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import QWidget
+from .fonts import get_inter_font
 
 MONTHS = [
     "",
@@ -64,10 +65,7 @@ class CalendarWidget(QWidget):
         days_h = body_h - weekdays_h
         r = 16.0
 
-        header_font = QFont(self.font())
-        header_font.setPointSize(26)
-        header_font.setBold(True)
-        header_font.setItalic(True)
+        header_font = get_inter_font(26, weight=700, italic=True)
         painter.setFont(header_font)
         header_color = QColor(self.weather_text_color)
         header_color.setAlpha(int(255 * 0.85))
@@ -99,9 +97,7 @@ class CalendarWidget(QWidget):
         painter.drawRect(QRectF(0.0, body_y, w, weekdays_h))
 
         col_w = w / 7.0
-        weekday_font = QFont(self.font())
-        weekday_font.setPointSize(22)
-        weekday_font.setBold(True)
+        weekday_font = get_inter_font(22, weight=700)
         painter.setFont(weekday_font)
 
         for i, wd in enumerate(WEEKDAYS):
@@ -163,15 +159,9 @@ class CalendarWidget(QWidget):
         row_count = max(len(month_days), 6)
         row_h = days_h / float(row_count)
 
-        day_font_normal = QFont(self.font())
-        day_font_normal.setPointSize(24)
-
-        day_font_bold = QFont(self.font())
-        day_font_bold.setPointSize(24)
-        day_font_bold.setBold(True)
-
-        day_font_light = QFont(self.font())
-        day_font_light.setPointSize(22)
+        day_font_normal = get_inter_font(24, weight=400)
+        day_font_bold = get_inter_font(24, weight=700)
+        day_font_light = get_inter_font(22, weight=300)
 
         for row_idx in range(row_count):
             week = month_days[row_idx] if row_idx < len(month_days) else []

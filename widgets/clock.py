@@ -1,8 +1,9 @@
 import datetime
 import math
 from PyQt5.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PyQt5.QtGui import QColor, QFont, QPainter, QPen
+from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import QWidget
+from .fonts import get_inter_font
 
 CENTER = 110.0
 DIAL_HALF_SIZE = 109.0
@@ -157,9 +158,7 @@ class AnalogClock(QWidget):
 
         time_str = now.strftime("%H:%M:%S")
         painter.setPen(QColor(255, 255, 255, 160))
-        digi_font = QFont(self.font())
-        digi_font.setPointSize(10)
-        digi_font.setItalic(True)
+        digi_font = get_inter_font(10, weight=400, italic=True)
         painter.setFont(digi_font)
         painter.drawText(
             QRectF(CENTER - 60, 182 - 24, 120, 20), Qt.AlignCenter, time_str

@@ -346,12 +346,12 @@ class WeatherEffectsWidget(QWidget):
         alive_particles = []
         for p in self.particles:
             if p["dying"]:
-                p["opacity"] -= 0.015 * dt
+                p["opacity"] -= 0.007 * dt
                 if p["opacity"] <= 0:
                     continue
             else:
                 if p["opacity"] < p["target_opacity"]:
-                    p["opacity"] = min(p["target_opacity"], p["opacity"] + 0.015 * dt)
+                    p["opacity"] = min(p["target_opacity"], p["opacity"] + 0.007 * dt)
 
             ptype = p["type"]
             if ptype == "rain":
