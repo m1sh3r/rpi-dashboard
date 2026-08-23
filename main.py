@@ -1,4 +1,5 @@
 import sys
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from api import WeatherClient
@@ -16,6 +17,7 @@ class DashboardWindow(QWidget):
         self.is_pc_online = False
 
         self.setWindowTitle("RPI Dashboard")
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setFixedSize(1920, 480)
         self.setStyleSheet("background-color: #000000; color: #ffffff;")
 
@@ -68,6 +70,7 @@ class DashboardWindow(QWidget):
 
 def main():
     app = QApplication(sys.argv)
+    app.setOverrideCursor(Qt.BlankCursor)
     window = DashboardWindow()
     window.show()
     sys.exit(app.exec_())
