@@ -47,31 +47,26 @@ class DashboardWindow(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(20)
 
-        left_container = QFrame(self)
-        left_layout = QHBoxLayout(left_container)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(20)
+        self.calendar = CalendarWidget(self)
+        self.calendar.setFixedWidth(460)
+        main_layout.addWidget(self.calendar)
 
-        self.clock = AnalogClock(left_container)
-        self.calendar = CalendarWidget(left_container)
+        center_container = QFrame(self)
+        self.center_layout = QVBoxLayout(center_container)
+        self.center_layout.setContentsMargins(0, 0, 0, 0)
+        self.center_layout.setSpacing(10)
 
-        left_layout.addWidget(self.clock, 1)
-        left_layout.addWidget(self.calendar, 1)
+        self.weather = WeatherWidget(center_container)
+        self.pc_status = PcStatusWidget(center_container)
 
-        main_layout.addWidget(left_container, 1)
+        self.center_layout.addWidget(self.weather, 1)
+        self.center_layout.addWidget(self.pc_status, 1)
 
-        right_container = QFrame(self)
-        self.right_layout = QVBoxLayout(right_container)
-        self.right_layout.setContentsMargins(0, 0, 0, 0)
-        self.right_layout.setSpacing(10)
+        main_layout.addWidget(center_container, 1)
 
-        self.weather = WeatherWidget(right_container)
-        self.pc_status = PcStatusWidget(right_container)
-
-        self.right_layout.addWidget(self.weather, 1)
-        self.right_layout.addWidget(self.pc_status, 1)
-
-        main_layout.addWidget(right_container, 1)
+        self.clock = AnalogClock(self)
+        self.clock.setFixedWidth(460)
+        main_layout.addWidget(self.clock)
 
         self.set_online_state(self.is_pc_online)
 
