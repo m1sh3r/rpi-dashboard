@@ -1,7 +1,26 @@
+import os
 import sys
+
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+os.environ["QT_SCALE_FACTOR"] = "1"
+os.environ["QT_FONT_DPI"] = "96"
+
+if sys.platform == "win32":
+    try:
+        import ctypes
+
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except Exception:
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        except Exception:
+            pass
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
+from config import config
 from api import WeatherClient
 from widgets import (
     AnalogClock,
@@ -69,6 +88,13 @@ class DashboardWindow(QWidget):
 
 
 def main():
+    if hasattr(Qt, "AA_DisableHighDpiScaling"):
+        QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
+    if hasattr(Qt, "AA_EnableHighDpiScaling"):
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, False)
+    if hasattr(Qt, "AA_Use96Dpi"):
+        QApplication.setAttribute(Qt.AA_Use96Dpi, True)
+
     app = QApplication(sys.argv)
     app.setOverrideCursor(Qt.BlankCursor)
     window = DashboardWindow()
