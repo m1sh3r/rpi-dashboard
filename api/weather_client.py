@@ -18,57 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 CACHE_DIR = BASE_DIR / ".cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_FILE = CACHE_DIR / "weather_cache.json"
-META_FILE = CACHE_DIR / "weather_request_meta.json"
-
-
-def can_make_yandex_request() -> tuple[bool, dict]:
-    today_key = datetime.date.today().strftime("%Y-%m-%d")
-    meta = {"dateKey": today_key, "count": 0, "last_ts": 0.0, "disabled_until_ts": 0.0}
-
-    if META_FILE.exists():
-        try:
-            data = json.loads(META_FILE.read_text(encoding="utf-8"))
-            if data.get("dateKey") == today_key:
-                meta["count"] = data.get("count", 0)
-                meta["last_ts"] = float(data.get("last_ts", 0.0))
-                meta["disabled_until_ts"] = float(data.get("disabled_until_ts", 0.0))
-            else:
-                meta["count"] = 0
-                meta["last_ts"] = float(data.get("last_ts", 0.0))
-                meta["disabled_until_ts"] = 0.0
-        except Exception:
-            pass
-
-    if time.time() < meta.get("disabled_until_ts", 0.0):
-        return False, meta
-
-    has_daily_budget = meta["count"] < config.YANDEX_DAILY_LIMIT
-    cooldown_passed = (time.time() - meta["last_ts"]) >= config.YANDEX_MIN_INTERVAL_SEC
-
-    return (has_daily_budget and cooldown_passed), meta
-
-
-def record_yandex_request(meta: dict):
-    today_key = datetime.date.today().strftime("%Y-%m-%d")
-    if meta.get("dateKey") != today_key:
-        meta["dateKey"] = today_key
-        meta["count"] = 1
-    else:
-        meta["count"] = meta.get("count", 0) + 1
-
-    meta["last_ts"] = time.time()
-    try:
-        META_FILE.write_text(json.dumps(meta), encoding="utf-8")
-    except Exception:
-        pass
-
-
-def disable_yandex_temporarily(meta: dict, duration_sec: int = 21600):
-    meta["disabled_until_ts"] = time.time() + duration_sec
-    try:
-        META_FILE.write_text(json.dumps(meta), encoding="utf-8")
-    except Exception:
-        pass
 
 
 def fetch_open_meteo(lat: float, lon: float) -> dict:
@@ -133,7 +82,7 @@ def fetch_open_meteo(lat: float, lon: float) -> dict:
             }
         )
 
-    return {"fact": fact, "forecast": forecast_days}
+    return {"source": "open-meteo", "fact": fact, "forecast": forecast_days}
 
 
 class WeatherWorker(QThread):
@@ -146,91 +95,22 @@ class WeatherWorker(QThread):
             self.failed.emit("Координаты WEATHER_LAT и WEATHER_LON не заданы в .env")
             return
 
-        payload = None
-        has_budget, meta = can_make_yandex_request()
-
-        if config.YANDEX_WEATHER_API_KEY and has_budget:
-            try:
-                params = {
-                    "lat": lat,
-                    "lon": lon,
-                    "lang": config.YANDEX_WEATHER_LANG,
-                    "limit": 1,
-                    "hours": "false",
-                    "extra": "false",
-                }
-                headers = {"X-Yandex-Weather-Key": config.YANDEX_WEATHER_API_KEY}
-                resp = requests.get(
-                    config.YANDEX_WEATHER_API_ENDPOINT,
-                    params=params,
-                    headers=headers,
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    record_yandex_request(meta)
-                    data = resp.json()
-                    fact = data.get("fact", {})
-                    cond = fact.get("condition", "clear")
-                    payload = {
-                        "source": "yandex",
-                        "fact": {
-                            "temp": round(fact.get("temp", 0)),
-                            "feels_like": round(fact.get("feels_like", 0)),
-                            "condition": cond,
-                            "condition_name": YANDEX_CONDITION_NAMES.get(
-                                cond, fact.get("condition", "Ясно")
-                            ),
-                            "icon": fact.get("icon")
-                            or CONDITION_TO_ICON.get(cond, "skc_d"),
-                            "wind_speed": float(fact.get("wind_speed", 0)),
-                            "wind_dir": degree_to_wind_direction(
-                                fact.get("wind_angle", 0)
-                            ),
-                            "wind_arrow": degree_to_wind_arrow(
-                                fact.get("wind_angle", 0)
-                            ),
-                            "wind_angle": fact.get("wind_angle", 0),
-                            "pressure_mm": fact.get("pressure_mm", 750),
-                            "humidity": fact.get("humidity", 50),
-                        },
-                        "forecast": [],
-                    }
-                    try:
-                        open_meteo_res = fetch_open_meteo(lat, lon)
-                        payload["forecast"] = open_meteo_res.get("forecast", [])
-                    except Exception:
-                        pass
-                elif resp.status_code in (401, 403, 429):
-                    # Key quota expired or blocked; disable Yandex for 6 hours
-                    disable_yandex_temporarily(meta, 21600)
-            except Exception:
-                payload = None
-
-        if not payload:
-            try:
-                open_meteo_res = fetch_open_meteo(lat, lon)
-                payload = {
-                    "source": "open-meteo",
-                    "fact": open_meteo_res["fact"],
-                    "forecast": open_meteo_res["forecast"],
-                }
-            except Exception as e:
-                if CACHE_FILE.exists():
-                    try:
-                        cached = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
-                        self.finished.emit(cached)
-                        return
-                    except Exception:
-                        pass
-                self.failed.emit(str(e))
-                return
-
         try:
-            CACHE_FILE.write_text(json.dumps(payload), encoding="utf-8")
-        except Exception:
-            pass
-
-        self.finished.emit(payload)
+            payload = fetch_open_meteo(lat, lon)
+            try:
+                CACHE_FILE.write_text(json.dumps(payload), encoding="utf-8")
+            except Exception:
+                pass
+            self.finished.emit(payload)
+        except Exception as e:
+            if CACHE_FILE.exists():
+                try:
+                    cached = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+                    self.finished.emit(cached)
+                    return
+                except Exception:
+                    pass
+            self.failed.emit(str(e))
 
 
 class WeatherClient(QObject):

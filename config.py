@@ -15,17 +15,7 @@ class Config:
     PC_STATUS_REFRESH_MS = int(os.getenv("PC_STATUS_REFRESH_MS", "1000"))
     PC_STATUS_STALE_AFTER_MS = int(os.getenv("PC_STATUS_STALE_AFTER_MS", "30000"))
 
-    YANDEX_WEATHER_API_KEY = os.getenv("YANDEX_WEATHER_API_KEY", "")
-    YANDEX_WEATHER_API_ENDPOINT = os.getenv(
-        "YANDEX_WEATHER_API_ENDPOINT", "https://api.weather.yandex.ru/v2/forecast"
-    )
-    YANDEX_WEATHER_LANG = os.getenv("YANDEX_WEATHER_LANG", "ru_RU")
-    WEATHER_REFRESH_MS = int(
-        os.getenv("WEATHER_REFRESH_MS", os.getenv("YANDEX_WEATHER_REFRESH_MS", "900000"))
-    )
-    YANDEX_WEATHER_REFRESH_MS = WEATHER_REFRESH_MS
-    YANDEX_DAILY_LIMIT = int(os.getenv("YANDEX_DAILY_LIMIT", "30"))
-    YANDEX_MIN_INTERVAL_SEC = int(os.getenv("YANDEX_MIN_INTERVAL_SEC", "3000"))
+    WEATHER_REFRESH_MS = int(os.getenv("WEATHER_REFRESH_MS", "300000"))
 
     WEATHER_LAT = float(os.getenv("WEATHER_LAT")) if os.getenv("WEATHER_LAT") else None
     WEATHER_LON = float(os.getenv("WEATHER_LON")) if os.getenv("WEATHER_LON") else None
