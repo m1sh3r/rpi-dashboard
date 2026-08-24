@@ -92,7 +92,7 @@ class WeatherWorker(QThread):
     def run(self):
         lat, lon = config.WEATHER_LAT, config.WEATHER_LON
         if lat is None or lon is None:
-            self.failed.emit("Координаты WEATHER_LAT и WEATHER_LON не заданы в .env")
+            self.failed.emit("Координаты не заданы")
             return
 
         try:
@@ -102,7 +102,7 @@ class WeatherWorker(QThread):
             except Exception:
                 pass
             self.finished.emit(payload)
-        except Exception as e:
+        except Exception:
             if CACHE_FILE.exists():
                 try:
                     cached = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
@@ -110,7 +110,7 @@ class WeatherWorker(QThread):
                     return
                 except Exception:
                     pass
-            self.failed.emit(str(e))
+            self.failed.emit("Ошибка сети")
 
 
 class WeatherClient(QObject):
