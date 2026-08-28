@@ -149,7 +149,7 @@ class AnalogClock(QWidget):
         hour = (now.hour % 12) + minute / 60.0
 
         minute_angle = minute * 6.0
-        hour_angle = (hour % 12) * 30.0 + (minute % 60) * 0.5
+        hour_angle = hour * 30.0
 
         painter.save()
         painter.translate(center_x, center_y)
