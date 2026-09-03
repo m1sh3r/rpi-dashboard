@@ -82,7 +82,9 @@ def spring_tick(t_sec: float) -> float:
     zeta = 0.4
     omega_d = omega * math.sqrt(1.0 - zeta * zeta)
     decay = math.exp(-zeta * omega * t_sec)
-    osc = math.cos(omega_d * t_sec) + (zeta * omega / omega_d) * math.sin(omega_d * t_sec)
+    osc = math.cos(omega_d * t_sec) + (zeta * omega / omega_d) * math.sin(
+        omega_d * t_sec
+    )
     return 1.0 - decay * osc
 
 
@@ -105,6 +107,7 @@ class AnalogClock(QWidget):
 
     def _render_dial(self, w: float, h: float, scale: float):
         from PyQt5.QtGui import QPixmap
+
         pix = QPixmap(int(w), int(h))
         pix.fill(Qt.GlobalColor.transparent)
         p = QPainter(pix)
@@ -113,8 +116,18 @@ class AnalogClock(QWidget):
         p.scale(scale, scale)
         p.translate(-CENTER, -CENTER)
 
-        major_pen = QPen(QColor(242, 242, 242, int(255 * 0.75)), 2.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
-        minor_pen = QPen(QColor(242, 242, 242, int(255 * 0.50)), 1.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        major_pen = QPen(
+            QColor(242, 242, 242, int(255 * 0.75)),
+            2.0,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+        )
+        minor_pen = QPen(
+            QColor(242, 242, 242, int(255 * 0.50)),
+            1.0,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+        )
 
         for tick in MINUTE_TICKS:
             p.setPen(major_pen if tick["is_major"] else minor_pen)
@@ -130,7 +143,10 @@ class AnalogClock(QWidget):
         center_x = w / 2.0
         center_y = h / 2.0
 
-        if self.dial_pixmap is None or self.cached_size != (self.width(), self.height()):
+        if self.dial_pixmap is None or self.cached_size != (
+            self.width(),
+            self.height(),
+        ):
             self.dial_pixmap = self._render_dial(w, h, scale)
             self.cached_size = (self.width(), self.height())
 
@@ -161,18 +177,36 @@ class AnalogClock(QWidget):
         digi_font = get_inter_font(10, weight=400, italic=True)
         painter.setFont(digi_font)
         painter.drawText(
-            QRectF(CENTER - 60, 182 - 24, 120, 20), Qt.AlignmentFlag.AlignCenter, time_str
+            QRectF(CENTER - 60, 182 - 24, 120, 20),
+            Qt.AlignmentFlag.AlignCenter,
+            time_str,
         )
 
         painter.save()
         painter.translate(CENTER, CENTER)
         painter.rotate(minute_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(QPen(QColor(242, 242, 242), 8.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(
+                QColor(242, 242, 242),
+                8.0,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+            )
+        )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 50))
-        painter.setPen(QPen(QColor(255, 255, 255), 8.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(
+                QColor(255, 255, 255),
+                8.0,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+            )
+        )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 10))
-        painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(QColor(0, 0, 0), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        )
         painter.drawLine(QPointF(CENTER, 50), QPointF(CENTER, 10))
         painter.restore()
 
@@ -180,9 +214,18 @@ class AnalogClock(QWidget):
         painter.translate(CENTER, CENTER)
         painter.rotate(hour_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(QPen(QColor(242, 242, 242), 8.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(
+                QColor(242, 242, 242),
+                8.0,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+            )
+        )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))
-        painter.setPen(QPen(QColor(0, 0, 0), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(QColor(0, 0, 0), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        )
         painter.drawLine(QPointF(CENTER, CENTER), QPointF(CENTER, 55))
         painter.restore()
 
@@ -197,7 +240,11 @@ class AnalogClock(QWidget):
         painter.translate(CENTER, CENTER)
         painter.rotate(second_angle)
         painter.translate(-CENTER, -CENTER)
-        painter.setPen(QPen(QColor(255, 39, 39), 2.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(
+            QPen(
+                QColor(255, 39, 39), 2.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap
+            )
+        )
         painter.drawLine(QPointF(CENTER, 130), QPointF(CENTER, 5))
         painter.restore()
 

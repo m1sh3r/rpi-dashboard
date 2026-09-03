@@ -108,7 +108,9 @@ class MetricCard(QWidget):
         if len(history) >= SAMPLE_COUNT:
             self.history = [clamp_percent(v) for v in history[-SAMPLE_COUNT:]]
         else:
-            padded = [0.0] * (SAMPLE_COUNT - len(history)) + [clamp_percent(v) for v in history]
+            padded = [0.0] * (SAMPLE_COUNT - len(history)) + [
+                clamp_percent(v) for v in history
+            ]
             self.history = padded
         self.update()
 
@@ -174,7 +176,13 @@ class MetricCard(QWidget):
                 line_path.lineTo(points[i].x(), points[i].y())
             line_path.lineTo(w + 2.0, self._get_chart_y(self.history[-1], h))
 
-            line_pen = QPen(self.color_line, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin)
+            line_pen = QPen(
+                self.color_line,
+                1.2,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.FlatCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
             painter.strokePath(line_path, line_pen)
 
         painter.setClipping(False)
@@ -185,7 +193,13 @@ class MetricCard(QWidget):
         painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), r, r)
 
         if max(self.history) > 1.5:
-            active_pen = QPen(self.color_border, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+            active_pen = QPen(
+                self.color_border,
+                1.2,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
             painter.setPen(active_pen)
             painter.drawRoundedRect(rect.adjusted(0.6, 0.6, -0.6, -0.6), r, r)
 
@@ -197,7 +211,9 @@ class MetricCard(QWidget):
         fm_main = QFontMetricsF(painter.font())
         main_w = fm_main.horizontalAdvance(self.main_value)
         main_ascent = fm_main.ascent()
-        painter.drawText(QPointF(w - padding_x - main_w, padding_y + main_ascent), self.main_value)
+        painter.drawText(
+            QPointF(w - padding_x - main_w, padding_y + main_ascent), self.main_value
+        )
 
         if self.sub_values:
             painter.setFont(get_inter_font(20, weight=400, is_pixel_size=True))
@@ -216,11 +232,15 @@ class MetricCard(QWidget):
             cap_w = fm_cap.horizontalAdvance(self.caption)
             max_cap_w = w - padding_x * 2.0
             if cap_w > max_cap_w:
-                elided = fm_cap.elidedText(self.caption, Qt.TextElideMode.ElideRight, max_cap_w)
+                elided = fm_cap.elidedText(
+                    self.caption, Qt.TextElideMode.ElideRight, max_cap_w
+                )
                 elided_w = fm_cap.horizontalAdvance(elided)
                 painter.drawText(QPointF((w - elided_w) / 2.0, h - padding_y), elided)
             else:
-                painter.drawText(QPointF((w - cap_w) / 2.0, h - padding_y), self.caption)
+                painter.drawText(
+                    QPointF((w - cap_w) / 2.0, h - padding_y), self.caption
+                )
 
 
 class PcStatusWidget(QWidget):
@@ -264,7 +284,7 @@ class PcStatusWidget(QWidget):
 
         net_box = QHBoxLayout()
         net_box.setSpacing(28)
-        
+
         tx_box = QHBoxLayout()
         tx_box.setSpacing(8)
         tx_box.addWidget(self.net_tx_arrow)
@@ -285,7 +305,9 @@ class PcStatusWidget(QWidget):
         self.uptime_caption.setStyleSheet("color: rgba(225, 220, 212, 0.72);")
 
         self.uptime_val_label = QLabel("0:00:00:00", top_line)
-        self.uptime_val_label.setFont(get_inter_font(28, weight=700, is_pixel_size=True))
+        self.uptime_val_label.setFont(
+            get_inter_font(28, weight=700, is_pixel_size=True)
+        )
         self.uptime_val_label.setStyleSheet("color: rgba(225, 220, 212, 0.95);")
 
         uptime_box = QHBoxLayout()
@@ -353,13 +375,34 @@ class PcStatusWidget(QWidget):
             if not isinstance(disk, dict):
                 continue
 
-            raw_label = disk.get("label") or disk.get("Label") or disk.get("mountpoint") or disk.get("device") or f"Диск {idx + 1}"
+            raw_label = (
+                disk.get("label")
+                or disk.get("Label")
+                or disk.get("mountpoint")
+                or disk.get("device")
+                or f"Диск {idx + 1}"
+            )
             label = str(raw_label).rstrip("\\/").strip() or f"Диск {idx + 1}"
 
-            name = str(disk.get("name") or disk.get("Name") or disk.get("volumeName") or disk.get("VolumeLabel") or "").strip()
-            total_b = float(disk.get("totalBytes") or disk.get("TotalBytes") or disk.get("total") or 0)
-            free_b = float(disk.get("freeBytes") or disk.get("FreeBytes") or disk.get("free") or 0)
-            used_b = float(disk.get("usedBytes") or disk.get("UsedBytes") or disk.get("used") or 0)
+            name = str(
+                disk.get("name")
+                or disk.get("Name")
+                or disk.get("volumeName")
+                or disk.get("VolumeLabel")
+                or ""
+            ).strip()
+            total_b = float(
+                disk.get("totalBytes")
+                or disk.get("TotalBytes")
+                or disk.get("total")
+                or 0
+            )
+            free_b = float(
+                disk.get("freeBytes") or disk.get("FreeBytes") or disk.get("free") or 0
+            )
+            used_b = float(
+                disk.get("usedBytes") or disk.get("UsedBytes") or disk.get("used") or 0
+            )
 
             if free_b == 0 and total_b > 0 and used_b > 0:
                 free_b = max(0.0, total_b - used_b)
@@ -375,13 +418,15 @@ class PcStatusWidget(QWidget):
             else:
                 usage_pct = 0.0
 
-            parsed.append({
-                "label": label,
-                "name": name,
-                "totalBytes": total_b,
-                "freeBytes": free_b,
-                "usagePercent": clamp_percent(usage_pct),
-            })
+            parsed.append(
+                {
+                    "label": label,
+                    "name": name,
+                    "totalBytes": total_b,
+                    "freeBytes": free_b,
+                    "usagePercent": clamp_percent(usage_pct),
+                }
+            )
 
         return parsed
 
@@ -407,7 +452,11 @@ class PcStatusWidget(QWidget):
         self.net_rx_val.setText(format_network_mbit(rx))
 
         cpu = data.get("cpu") or data.get("Cpu") or {}
-        cpu_usage = clamp_percent(cpu.get("usagePercent") if "usagePercent" in cpu else cpu.get("UsagePercent", 0))
+        cpu_usage = clamp_percent(
+            cpu.get("usagePercent")
+            if "usagePercent" in cpu
+            else cpu.get("UsagePercent", 0)
+        )
         self.cpu_card.add_sample(cpu_usage)
         self.cpu_card.set_content(format_percent(cpu_usage))
 
@@ -416,9 +465,15 @@ class PcStatusWidget(QWidget):
         used_ram = float(mem.get("usedBytes") or mem.get("UsedBytes") or 0)
         ram_pct = (used_ram / total_ram) * 100.0 if total_ram > 0 else 0.0
 
-        commit_used = float(mem.get("commitUsedBytes") or mem.get("CommitUsedBytes") or 0)
+        commit_used = float(
+            mem.get("commitUsedBytes") or mem.get("CommitUsedBytes") or 0
+        )
         swap = data.get("swap") or data.get("Swap") or {}
-        swap_used = float(swap.get("usedBytes") or swap.get("UsedBytes") or max(commit_used - used_ram, 0.0))
+        swap_used = float(
+            swap.get("usedBytes")
+            or swap.get("UsedBytes")
+            or max(commit_used - used_ram, 0.0)
+        )
 
         self.memory_card.add_sample(ram_pct)
         self.memory_card.set_content(
@@ -427,9 +482,17 @@ class PcStatusWidget(QWidget):
         )
 
         gpu = data.get("gpu") or data.get("Gpu") or {}
-        gpu_usage = clamp_percent(gpu.get("usagePercent") if "usagePercent" in gpu else gpu.get("UsagePercent", 0))
+        gpu_usage = clamp_percent(
+            gpu.get("usagePercent")
+            if "usagePercent" in gpu
+            else gpu.get("UsagePercent", 0)
+        )
         gpu_vram = float(gpu.get("memoryUsedBytes") or gpu.get("MemoryUsedBytes") or 0)
-        gpu_temp = gpu.get("temperatureC") if "temperatureC" in gpu else gpu.get("TemperatureC")
+        gpu_temp = (
+            gpu.get("temperatureC")
+            if "temperatureC" in gpu
+            else gpu.get("TemperatureC")
+        )
 
         self.gpu_card.add_sample(gpu_usage)
         self.gpu_card.set_content(

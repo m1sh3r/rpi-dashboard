@@ -6,7 +6,9 @@ from PyQt5.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QRadialGra
 from PyQt5.QtWidgets import QWidget
 
 
-def get_dashboard_rounded_path(w: float, h: float, r_left: float = 36.0, r_right: float = 240.0) -> QPainterPath:
+def get_dashboard_rounded_path(
+    w: float, h: float, r_left: float = 36.0, r_right: float = 240.0
+) -> QPainterPath:
     r_tl = min(r_left, w / 2.0, h / 2.0)
     r_bl = min(r_left, w / 2.0, h / 2.0)
     r_tr = min(r_right, w / 2.0, h / 2.0)
@@ -25,20 +27,72 @@ def get_dashboard_rounded_path(w: float, h: float, r_left: float = 36.0, r_right
     path.closeSubpath()
     return path
 
+
 RAIN_CONFIG = {
     "layers": [
-        {"count": 35, "speed_min": 3.5, "speed_max": 5.5, "len_min": 10, "len_max": 16, "op_min": 0.08, "op_max": 0.18, "width": 0.8},
-        {"count": 45, "speed_min": 7.0, "speed_max": 10.0, "len_min": 20, "len_max": 28, "op_min": 0.18, "op_max": 0.32, "width": 1.2},
-        {"count": 18, "speed_min": 12.0, "speed_max": 16.0, "len_min": 38, "len_max": 48, "op_min": 0.35, "op_max": 0.55, "width": 2.0},
+        {
+            "count": 35,
+            "speed_min": 3.5,
+            "speed_max": 5.5,
+            "len_min": 10,
+            "len_max": 16,
+            "op_min": 0.08,
+            "op_max": 0.18,
+            "width": 0.8,
+        },
+        {
+            "count": 45,
+            "speed_min": 7.0,
+            "speed_max": 10.0,
+            "len_min": 20,
+            "len_max": 28,
+            "op_min": 0.18,
+            "op_max": 0.32,
+            "width": 1.2,
+        },
+        {
+            "count": 18,
+            "speed_min": 12.0,
+            "speed_max": 16.0,
+            "len_min": 38,
+            "len_max": 48,
+            "op_min": 0.35,
+            "op_max": 0.55,
+            "width": 2.0,
+        },
     ],
     "wind": 1.8,
 }
 
 SNOW_CONFIG = {
     "layers": [
-        {"count": 25, "speed_min": 0.15, "speed_max": 0.35, "rad_min": 0.8, "rad_max": 1.8, "op_min": 0.12, "op_max": 0.28},
-        {"count": 35, "speed_min": 0.45, "speed_max": 0.75, "rad_min": 1.8, "rad_max": 3.2, "op_min": 0.25, "op_max": 0.45},
-        {"count": 12, "speed_min": 0.9, "speed_max": 1.35, "rad_min": 3.5, "rad_max": 5.5, "op_min": 0.45, "op_max": 0.65},
+        {
+            "count": 25,
+            "speed_min": 0.15,
+            "speed_max": 0.35,
+            "rad_min": 0.8,
+            "rad_max": 1.8,
+            "op_min": 0.12,
+            "op_max": 0.28,
+        },
+        {
+            "count": 35,
+            "speed_min": 0.45,
+            "speed_max": 0.75,
+            "rad_min": 1.8,
+            "rad_max": 3.2,
+            "op_min": 0.25,
+            "op_max": 0.45,
+        },
+        {
+            "count": 12,
+            "speed_min": 0.9,
+            "speed_max": 1.35,
+            "rad_min": 3.5,
+            "rad_max": 5.5,
+            "op_min": 0.45,
+            "op_max": 0.65,
+        },
     ]
 }
 
@@ -51,7 +105,6 @@ CLOUD_CONFIG = {
     "op_min": 0.04,
     "op_max": 0.10,
 }
-
 
 
 class WeatherEffectsWidget(QWidget):
@@ -86,6 +139,7 @@ class WeatherEffectsWidget(QWidget):
 
     def _create_cloud_texture(self, size: int):
         from PyQt5.QtGui import QPixmap
+
         pix = QPixmap(size, size)
         pix.fill(Qt.GlobalColor.transparent)
         p = QPainter(pix)
@@ -101,7 +155,9 @@ class WeatherEffectsWidget(QWidget):
         p.end()
         return pix
 
-    def set_weather_params(self, condition: str, wind_speed: float = 2.0, wind_angle: float = 270.0):
+    def set_weather_params(
+        self, condition: str, wind_speed: float = 2.0, wind_angle: float = 270.0
+    ):
         if condition != self.condition or abs(wind_speed - self.wind_speed) > 0.5:
             self.condition = condition or "clear"
             self.wind_speed = float(wind_speed)
@@ -113,10 +169,21 @@ class WeatherEffectsWidget(QWidget):
             p["dying"] = True
             p["target_opacity"] = 0.0
 
-        is_rainy = self.condition in ["light-rain", "rain", "heavy-rain", "showers", "sleet", "thunderstorm-with-rain"]
+        is_rainy = self.condition in [
+            "light-rain",
+            "rain",
+            "heavy-rain",
+            "showers",
+            "sleet",
+            "thunderstorm-with-rain",
+        ]
         is_snowy = self.condition in ["light-snow", "snow", "snowfall", "sleet"]
         is_hailing = self.condition in ["hail", "thunderstorm-with-hail"]
-        is_thundering = self.condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]
+        is_thundering = self.condition in [
+            "thunderstorm",
+            "thunderstorm-with-rain",
+            "thunderstorm-with-hail",
+        ]
         is_cloudy = self.condition in ["partly-cloudy", "cloudy", "overcast", "fog"]
 
         rad = math.radians(self.wind_angle)
@@ -133,39 +200,75 @@ class WeatherEffectsWidget(QWidget):
             w_mult = 1.0
 
             if self.condition == "light-rain":
-                count_mult, speed_mult, len_mult, op_mult, w_mult = 0.6, 0.8, 0.75, 0.8, 0.8
+                count_mult, speed_mult, len_mult, op_mult, w_mult = (
+                    0.6,
+                    0.8,
+                    0.75,
+                    0.8,
+                    0.8,
+                )
             elif self.condition in ["heavy-rain", "thunderstorm-with-rain"]:
-                count_mult, speed_mult, len_mult, op_mult, w_mult = 1.8, 1.3, 1.4, 1.2, 1.2
+                count_mult, speed_mult, len_mult, op_mult, w_mult = (
+                    1.8,
+                    1.3,
+                    1.4,
+                    1.2,
+                    1.2,
+                )
             elif self.condition == "showers":
-                count_mult, speed_mult, len_mult, op_mult, w_mult = 2.5, 1.5, 1.6, 1.3, 1.3
+                count_mult, speed_mult, len_mult, op_mult, w_mult = (
+                    2.5,
+                    1.5,
+                    1.6,
+                    1.3,
+                    1.3,
+                )
             elif self.condition == "sleet":
-                count_mult, speed_mult, len_mult, op_mult, w_mult = 0.4, 0.75, 0.7, 0.8, 0.8
+                count_mult, speed_mult, len_mult, op_mult, w_mult = (
+                    0.4,
+                    0.75,
+                    0.7,
+                    0.8,
+                    0.8,
+                )
 
             for layer_idx, layer in enumerate(RAIN_CONFIG["layers"]):
                 cnt = int(layer["count"] * count_mult * (self.w / 1200.0))
                 for _ in range(cnt):
-                    vy = (random.uniform(layer["speed_min"], layer["speed_max"])) * speed_mult
+                    vy = (
+                        random.uniform(layer["speed_min"], layer["speed_max"])
+                    ) * speed_mult
                     vx = wind * (1.5 - layer_idx * 0.3) * speed_mult
-                    length = random.uniform(layer["len_min"], layer["len_max"]) * len_mult
+                    length = (
+                        random.uniform(layer["len_min"], layer["len_max"]) * len_mult
+                    )
                     v_mag = max(math.sqrt(vx * vx + vy * vy), 0.001)
                     dx = (vx / v_mag) * length
                     dy = (vy / v_mag) * length
-                    target_op = max(0.04, min(random.uniform(layer["op_min"], layer["op_max"]) * op_mult, 0.9))
+                    target_op = max(
+                        0.04,
+                        min(
+                            random.uniform(layer["op_min"], layer["op_max"]) * op_mult,
+                            0.9,
+                        ),
+                    )
 
-                    new_particles.append({
-                        "type": "rain",
-                        "x": random.uniform(-100, self.w + 100),
-                        "y": random.uniform(0, self.h),
-                        "vx": vx,
-                        "vy": vy,
-                        "dx": dx,
-                        "dy": dy,
-                        "length": length,
-                        "opacity": 0.0,
-                        "target_opacity": target_op,
-                        "dying": False,
-                        "width": layer["width"] * w_mult,
-                    })
+                    new_particles.append(
+                        {
+                            "type": "rain",
+                            "x": random.uniform(-100, self.w + 100),
+                            "y": random.uniform(0, self.h),
+                            "vx": vx,
+                            "vy": vy,
+                            "dx": dx,
+                            "dy": dy,
+                            "length": length,
+                            "opacity": 0.0,
+                            "target_opacity": target_op,
+                            "dying": False,
+                            "width": layer["width"] * w_mult,
+                        }
+                    )
 
         if is_snowy:
             count_mult = 1.0
@@ -183,76 +286,105 @@ class WeatherEffectsWidget(QWidget):
             for layer_idx, layer in enumerate(SNOW_CONFIG["layers"]):
                 cnt = int(layer["count"] * count_mult * (self.w / 1200.0))
                 for _ in range(cnt):
-                    vy = random.uniform(layer["speed_min"], layer["speed_max"]) * speed_mult
+                    vy = (
+                        random.uniform(layer["speed_min"], layer["speed_max"])
+                        * speed_mult
+                    )
                     vx = wind_vx * 0.25 * (1.3 - layer_idx * 0.2) * speed_mult
-                    target_op = max(0.04, min(random.uniform(layer["op_min"], layer["op_max"]) * op_mult, 0.9))
+                    target_op = max(
+                        0.04,
+                        min(
+                            random.uniform(layer["op_min"], layer["op_max"]) * op_mult,
+                            0.9,
+                        ),
+                    )
 
-                    new_particles.append({
-                        "type": "snow",
-                        "x": random.uniform(0, self.w),
-                        "y": random.uniform(0, self.h),
-                        "vx": vx,
-                        "vy": vy,
-                        "radius": random.uniform(layer["rad_min"], layer["rad_max"]) * rad_mult,
-                        "opacity": 0.0,
-                        "target_opacity": target_op,
-                        "dying": False,
-                        "swing_speed": random.uniform(0.005, 0.02),
-                        "swing_range": random.uniform(5, 20),
-                        "swing_offset": random.uniform(0, 100),
-                    })
+                    new_particles.append(
+                        {
+                            "type": "snow",
+                            "x": random.uniform(0, self.w),
+                            "y": random.uniform(0, self.h),
+                            "vx": vx,
+                            "vy": vy,
+                            "radius": random.uniform(layer["rad_min"], layer["rad_max"])
+                            * rad_mult,
+                            "opacity": 0.0,
+                            "target_opacity": target_op,
+                            "dying": False,
+                            "swing_speed": random.uniform(0.005, 0.02),
+                            "swing_range": random.uniform(5, 20),
+                            "swing_offset": random.uniform(0, 100),
+                        }
+                    )
 
         if is_hailing:
             cnt = int(25 * (self.w / 1200.0))
             for _ in range(cnt):
-                new_particles.append({
-                    "type": "hail",
-                    "x": random.uniform(-50, self.w + 50),
-                    "y": random.uniform(0, self.h),
-                    "speed_y": random.uniform(8.0, 16.0),
-                    "speed_x": wind_vx * 0.1 + random.uniform(-0.25, 0.25),
-                    "radius": random.uniform(1.5, 4.0),
-                    "opacity": 0.0,
-                    "target_opacity": random.uniform(0.4, 0.8),
-                    "dying": False,
-                })
+                new_particles.append(
+                    {
+                        "type": "hail",
+                        "x": random.uniform(-50, self.w + 50),
+                        "y": random.uniform(0, self.h),
+                        "speed_y": random.uniform(8.0, 16.0),
+                        "speed_x": wind_vx * 0.1 + random.uniform(-0.25, 0.25),
+                        "radius": random.uniform(1.5, 4.0),
+                        "opacity": 0.0,
+                        "target_opacity": random.uniform(0.4, 0.8),
+                        "dying": False,
+                    }
+                )
 
         if is_thundering:
             self.next_lightning_time = time.time() + random.uniform(2.0, 5.0)
 
         if is_cloudy:
-            cnt = 7 if self.condition == "overcast" else (4 if self.condition == "cloudy" else 2)
+            cnt = (
+                7
+                if self.condition == "overcast"
+                else (4 if self.condition == "cloudy" else 2)
+            )
             op_mult = 1.5 if self.condition == "overcast" else 1.0
             for _ in range(max(cnt, 2)):
-                target_op = min(random.uniform(CLOUD_CONFIG["op_min"], CLOUD_CONFIG["op_max"]) * op_mult, 0.25)
-                new_particles.append({
-                    "type": "cloud",
-                    "x": random.uniform(-300, self.w + 300),
-                    "y": random.uniform(0, self.h * 0.7),
-                    "radius": random.uniform(CLOUD_CONFIG["rad_min"], CLOUD_CONFIG["rad_max"]),
-                    "speed": random.uniform(CLOUD_CONFIG["speed_min"], CLOUD_CONFIG["speed_max"]),
-                    "opacity": 0.0,
-                    "target_opacity": target_op,
-                    "dying": False,
-                    "phase": random.uniform(0, math.pi * 2),
-                    "phase_speed": random.uniform(0.0002, 0.0006),
-                })
-
+                target_op = min(
+                    random.uniform(CLOUD_CONFIG["op_min"], CLOUD_CONFIG["op_max"])
+                    * op_mult,
+                    0.25,
+                )
+                new_particles.append(
+                    {
+                        "type": "cloud",
+                        "x": random.uniform(-300, self.w + 300),
+                        "y": random.uniform(0, self.h * 0.7),
+                        "radius": random.uniform(
+                            CLOUD_CONFIG["rad_min"], CLOUD_CONFIG["rad_max"]
+                        ),
+                        "speed": random.uniform(
+                            CLOUD_CONFIG["speed_min"], CLOUD_CONFIG["speed_max"]
+                        ),
+                        "opacity": 0.0,
+                        "target_opacity": target_op,
+                        "dying": False,
+                        "phase": random.uniform(0, math.pi * 2),
+                        "phase_speed": random.uniform(0.0002, 0.0006),
+                    }
+                )
 
         self.particles.extend(new_particles)
 
     def _create_splash(self, x: float, y: float, color: QColor):
         for _ in range(random.randint(2, 4)):
-            self.splashes.append({
-                "x": x,
-                "y": y,
-                "vx": random.uniform(-1.5, 1.5),
-                "vy": -random.uniform(1.0, 3.5),
-                "life": 1.0,
-                "decay": random.uniform(0.04, 0.10),
-                "size": random.uniform(0.6, 1.8),
-                "color": color,
-            })
+            self.splashes.append(
+                {
+                    "x": x,
+                    "y": y,
+                    "vx": random.uniform(-1.5, 1.5),
+                    "vy": -random.uniform(1.0, 3.5),
+                    "life": 1.0,
+                    "decay": random.uniform(0.04, 0.10),
+                    "size": random.uniform(0.6, 1.8),
+                    "color": color,
+                }
+            )
 
     def _create_lightning_bolt(self):
         start_x = random.uniform(0, self.w)
@@ -298,7 +430,11 @@ class WeatherEffectsWidget(QWidget):
         self.w = float(max(self.width(), 1920))
         self.h = float(max(self.height(), 480))
 
-        has_thunder = self.condition in ["thunderstorm", "thunderstorm-with-rain", "thunderstorm-with-hail"]
+        has_thunder = self.condition in [
+            "thunderstorm",
+            "thunderstorm-with-rain",
+            "thunderstorm-with-hail",
+        ]
         if has_thunder:
             if now > self.next_lightning_time:
                 self.lightnings.append(self._create_lightning_bolt())
@@ -334,13 +470,18 @@ class WeatherEffectsWidget(QWidget):
                     if p["dying"]:
                         p["opacity"] = 0
                         continue
-                    self._create_splash(p["x"], self.h, QColor(174, 194, 224, int(p["opacity"] * 255)))
+                    self._create_splash(
+                        p["x"], self.h, QColor(174, 194, 224, int(p["opacity"] * 255))
+                    )
                     p["y"] = -p["length"]
                     p["x"] = random.uniform(-50, self.w + 50)
 
             elif ptype == "snow":
                 p["y"] += p["vy"] * dt
-                p["x"] += (p["vx"] + math.sin(p["y"] * p["swing_speed"] + p["swing_offset"]) * 0.5) * dt
+                p["x"] += (
+                    p["vx"]
+                    + math.sin(p["y"] * p["swing_speed"] + p["swing_offset"]) * 0.5
+                ) * dt
                 if p["y"] > self.h + p["radius"]:
                     if p["dying"]:
                         p["opacity"] = 0
@@ -369,7 +510,6 @@ class WeatherEffectsWidget(QWidget):
                     p["x"] = -p["radius"]
                     p["y"] = random.uniform(0, self.h * 0.7)
 
-
             alive_particles.append(p)
 
         self.particles = alive_particles
@@ -390,7 +530,9 @@ class WeatherEffectsWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
 
-        clip_path = get_dashboard_rounded_path(float(self.width()), float(self.height()))
+        clip_path = get_dashboard_rounded_path(
+            float(self.width()), float(self.height())
+        )
         painter.setClipPath(clip_path)
 
         if self.flash_intensity > 0.01:
@@ -406,7 +548,10 @@ class WeatherEffectsWidget(QWidget):
             painter.setPen(pen)
             for x1, y1, x2, y2, is_branch in bolt["segments"]:
                 if is_branch:
-                    branch_pen = QPen(QColor(200, 215, 255, int(op * 180)), max(bolt["width"] * 0.6, 1.0))
+                    branch_pen = QPen(
+                        QColor(200, 215, 255, int(op * 180)),
+                        max(bolt["width"] * 0.6, 1.0),
+                    )
                     painter.setPen(branch_pen)
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
                     painter.setPen(pen)
@@ -423,7 +568,9 @@ class WeatherEffectsWidget(QWidget):
                 pen = QPen(QColor(174, 194, 224, int(op * 255)), p["width"])
                 pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 painter.setPen(pen)
-                painter.drawLine(QPointF(p["x"], p["y"]), QPointF(p["x"] + p["dx"], p["y"] + p["dy"]))
+                painter.drawLine(
+                    QPointF(p["x"], p["y"]), QPointF(p["x"] + p["dx"], p["y"] + p["dy"])
+                )
 
             elif ptype == "snow":
                 painter.setPen(Qt.PenStyle.NoPen)
@@ -446,7 +593,6 @@ class WeatherEffectsWidget(QWidget):
                     QRectF(0, 0, 256, 256),
                 )
                 painter.restore()
-
 
         painter.setPen(Qt.PenStyle.NoPen)
         for s in self.splashes:

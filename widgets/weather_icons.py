@@ -38,7 +38,9 @@ def _download_icon(code: str, callback=None):
 def get_icon_renderer(
     icon_code: str | None = None, condition: str | None = None, on_loaded=None
 ) -> QSvgRenderer | None:
-    code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d")
+    code = icon_code or (
+        CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d"
+    )
     if not code:
         code = "skc_d"
 
@@ -57,7 +59,9 @@ def get_icon_renderer(
     with _LOCK:
         if code not in _PENDING_DOWNLOADS:
             _PENDING_DOWNLOADS.add(code)
-            t = threading.Thread(target=_download_icon, args=(code, on_loaded), daemon=True)
+            t = threading.Thread(
+                target=_download_icon, args=(code, on_loaded), daemon=True
+            )
             t.start()
 
     return None

@@ -27,7 +27,9 @@ def fetch_open_meteo(lat: float, lon: float) -> dict:
         "&daily=weather_code,temperature_2m_max,temperature_2m_min"
         "&timezone=auto"
     )
-    headers = {"User-Agent": "rpi-dashboard/1.0 (https://github.com/mucxep/rpi-dashboard)"}
+    headers = {
+        "User-Agent": "rpi-dashboard/1.0 (https://github.com/mucxep/rpi-dashboard)"
+    }
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
     data = resp.json()
@@ -59,9 +61,7 @@ def fetch_open_meteo(lat: float, lon: float) -> dict:
     forecast_days = []
     start_idx = 1 if len(times) > 5 else 0
     for i in range(start_idx, min(len(times), start_idx + 5)):
-        f_cond = WMO_TO_YANDEX_CONDITION.get(
-            codes[i] if i < len(codes) else 0, "clear"
-        )
+        f_cond = WMO_TO_YANDEX_CONDITION.get(codes[i] if i < len(codes) else 0, "clear")
         date_str = times[i] if i < len(times) else ""
         day_name = ""
         try:

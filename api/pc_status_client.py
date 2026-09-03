@@ -43,46 +43,73 @@ if sys.platform == "win32":
                     if ret and total_bytes.value > 0:
                         drive_letter = d.rstrip("\\/").strip()
                         name = vol_buf.value.strip() if vol_buf.value else ""
-                        disks.append({
-                            "label": drive_letter,
-                            "name": name,
-                            "totalBytes": total_bytes.value,
-                            "freeBytes": total_free.value,
-                        })
+                        disks.append(
+                            {
+                                "label": drive_letter,
+                                "name": name,
+                                "totalBytes": total_bytes.value,
+                                "freeBytes": total_free.value,
+                            }
+                        )
         except Exception:
             pass
 
         if not disks:
             disks = [
-                {"label": "C:", "name": "", "totalBytes": 1024 * (1024**3), "freeBytes": 450 * (1024**3)},
-                {"label": "D:", "name": "", "totalBytes": 2048 * (1024**3), "freeBytes": 980 * (1024**3)},
+                {
+                    "label": "C:",
+                    "name": "",
+                    "totalBytes": 1024 * (1024**3),
+                    "freeBytes": 450 * (1024**3),
+                },
+                {
+                    "label": "D:",
+                    "name": "",
+                    "totalBytes": 2048 * (1024**3),
+                    "freeBytes": 980 * (1024**3),
+                },
             ]
         return disks
+
 else:
+
     def scan_host_system_disks() -> list[dict]:
         disks = []
         if psutil is not None:
             try:
                 network_fs = {"nfs", "cifs", "smbfs", "nfs4", "fuse.sshfs", "afp"}
                 for p in psutil.disk_partitions(all=False):
-                    if "cdrom" in p.opts or (hasattr(p, "fstype") and p.fstype in network_fs) or p.fstype == "":
+                    if (
+                        "cdrom" in p.opts
+                        or (hasattr(p, "fstype") and p.fstype in network_fs)
+                        or p.fstype == ""
+                    ):
                         continue
                     try:
                         usage = psutil.disk_usage(p.mountpoint)
                         if usage.total > 0:
                             drive_letter = p.mountpoint.rstrip("\\/").strip()
-                            disks.append({
-                                "label": drive_letter,
-                                "name": "",
-                                "totalBytes": usage.total,
-                                "freeBytes": usage.free,
-                            })
+                            disks.append(
+                                {
+                                    "label": drive_letter,
+                                    "name": "",
+                                    "totalBytes": usage.total,
+                                    "freeBytes": usage.free,
+                                }
+                            )
                     except Exception:
                         continue
             except Exception:
                 pass
         if not disks:
-            disks = [{"label": "/", "name": "Root", "totalBytes": 1024 * (1024**3), "freeBytes": 450 * (1024**3)}]
+            disks = [
+                {
+                    "label": "/",
+                    "name": "Root",
+                    "totalBytes": 1024 * (1024**3),
+                    "freeBytes": 450 * (1024**3),
+                }
+            ]
         return disks
 
 
@@ -112,7 +139,13 @@ class PcStatusWorker(QThread):
 class PcStatusServerThread(QThread):
     status_received = pyqtSignal(dict)
 
-    def __init__(self, port: int = 3000, token: str = "", stale_after_ms: int = 30000, parent=None):
+    def __init__(
+        self,
+        port: int = 3000,
+        token: str = "",
+        stale_after_ms: int = 30000,
+        parent=None,
+    ):
         super().__init__(parent)
         self.port = port
         self.token = token
@@ -136,10 +169,9 @@ class PcStatusServerThread(QThread):
                     return
 
                 now = time.time()
-                is_stale = (
-                    worker.last_payload is None
-                    or (now - worker.last_received_ts) > (worker.stale_after_ms / 1000.0)
-                )
+                is_stale = worker.last_payload is None or (
+                    now - worker.last_received_ts
+                ) > (worker.stale_after_ms / 1000.0)
 
                 response_data = {
                     "data": None if is_stale else worker.last_payload,
@@ -172,11 +204,15 @@ class PcStatusServerThread(QThread):
                 body = self.rfile.read(length)
                 try:
                     payload = json.loads(body.decode("utf-8"))
-                    worker.updated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    worker.updated_at = time.strftime(
+                        "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                    )
                     worker.last_received_ts = time.time()
                     if isinstance(payload, dict):
                         if "data" in payload or "Data" in payload:
-                            worker.last_payload = payload.get("data") or payload.get("Data")
+                            worker.last_payload = payload.get("data") or payload.get(
+                                "Data"
+                            )
                         else:
                             worker.last_payload = payload
                     worker.status_received.emit(payload)
@@ -219,20 +255,22 @@ class MockPcMetricsGenerator:
 
     def get_payload(self) -> dict:
         self.uptime += 1
-        
+
         cpu_target = max(5.0, min(95.0, self.cur_cpu + random.uniform(-12.0, 14.0)))
         self.cur_cpu = round(0.7 * self.cur_cpu + 0.3 * cpu_target, 1)
 
         gpu_target = max(10.0, min(98.0, self.cur_gpu + random.uniform(-15.0, 18.0)))
         self.cur_gpu = round(0.75 * self.cur_gpu + 0.25 * gpu_target, 1)
-        
+
         ram_target = max(40.0, min(65.0, self.cur_ram + random.uniform(-2.0, 2.5)))
         self.cur_ram = round(0.9 * self.cur_ram + 0.1 * ram_target, 1)
 
         vram_target = (self.cur_gpu / 100.0 * 6.0 + 3.2) * (1024**3)
         self.cur_vram = 0.85 * self.cur_vram + 0.15 * vram_target
 
-        self.cur_gpu_temp = round(42.0 + (self.cur_gpu / 100.0) * 26.0 + random.uniform(-1.0, 1.0), 1)
+        self.cur_gpu_temp = round(
+            42.0 + (self.cur_gpu / 100.0) * 26.0 + random.uniform(-1.0, 1.0), 1
+        )
 
         tx_target = max(15000, random.uniform(50000, 2500000))
         rx_target = max(80000, random.uniform(200000, 12500000))
@@ -248,18 +286,22 @@ class MockPcMetricsGenerator:
                 target = random.uniform(10.0, 85.0)
             else:
                 target = random.uniform(0.0, 3.0)
-            self.disk_loads[drive] = round(0.6 * self.disk_loads[drive] + 0.4 * target, 1)
+            self.disk_loads[drive] = round(
+                0.6 * self.disk_loads[drive] + 0.4 * target, 1
+            )
 
         disks_payload = []
         for disk_info in self.discovered_disks:
             label = disk_info["label"]
-            disks_payload.append({
-                "label": label,
-                "name": disk_info["name"],
-                "totalBytes": disk_info["totalBytes"],
-                "freeBytes": disk_info["freeBytes"],
-                "usagePercent": self.disk_loads.get(label, 0.0),
-            })
+            disks_payload.append(
+                {
+                    "label": label,
+                    "name": disk_info["name"],
+                    "totalBytes": disk_info["totalBytes"],
+                    "freeBytes": disk_info["freeBytes"],
+                    "usagePercent": self.disk_loads.get(label, 0.0),
+                }
+            )
 
         return {
             "online": True,
@@ -374,9 +416,8 @@ class PcStatusClient(QObject):
             return
 
         now = time.time()
-        is_stale = (
-            self._last_payload is None
-            or (now - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0)
+        is_stale = self._last_payload is None or (now - self._last_received_ts) > (
+            config.PC_STATUS_STALE_AFTER_MS / 1000.0
         )
 
         if is_stale:
@@ -388,10 +429,20 @@ class PcStatusClient(QObject):
                 self.status_updated.emit(self._last_payload)
 
         endpoint = getattr(config, "PC_STATUS_ENDPOINT", "")
-        server_port = getattr(config, "PC_STATUS_SERVER_PORT", getattr(config, "PORT", 3000))
-        is_internal_endpoint = f":{server_port}" in endpoint or "localhost" in endpoint or "127.0.0.1" in endpoint
+        server_port = getattr(
+            config, "PC_STATUS_SERVER_PORT", getattr(config, "PORT", 3000)
+        )
+        is_internal_endpoint = (
+            f":{server_port}" in endpoint
+            or "localhost" in endpoint
+            or "127.0.0.1" in endpoint
+        )
 
-        if endpoint and not is_internal_endpoint and (now - self._last_received_ts > 1.0):
+        if (
+            endpoint
+            and not is_internal_endpoint
+            and (now - self._last_received_ts > 1.0)
+        ):
             if not (self.worker and self.worker.isRunning()):
                 token = getattr(config, "PC_STATUS_TOKEN", "")
                 self.worker = PcStatusWorker(endpoint, token)
@@ -409,9 +460,13 @@ class PcStatusClient(QObject):
             if was_offline:
                 self.status_updated.emit(payload)
         else:
-            if (time.time() - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
+            if (time.time() - self._last_received_ts) > (
+                config.PC_STATUS_STALE_AFTER_MS / 1000.0
+            ):
                 self._set_online(False)
 
     def _on_fetch_failed(self, error_msg: str):
-        if (time.time() - self._last_received_ts) > (config.PC_STATUS_STALE_AFTER_MS / 1000.0):
+        if (time.time() - self._last_received_ts) > (
+            config.PC_STATUS_STALE_AFTER_MS / 1000.0
+        ):
             self._set_online(False)

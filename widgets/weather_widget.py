@@ -25,7 +25,9 @@ from .weather_icons import get_icon_renderer
 
 def create_custom_bezier_curve() -> QEasingCurve:
     curve = QEasingCurve(QEasingCurve.BezierSpline)
-    curve.addCubicBezierSegment(QPointF(0.075, 0.82), QPointF(0.165, 1.0), QPointF(1.0, 1.0))
+    curve.addCubicBezierSegment(
+        QPointF(0.075, 0.82), QPointF(0.165, 1.0), QPointF(1.0, 1.0)
+    )
     return curve
 
 
@@ -33,9 +35,36 @@ CUSTOM_BEZIER = create_custom_bezier_curve()
 
 
 NON_BREAKING_PREPOSITIONS = {
-    "с", "со", "в", "во", "на", "по", "к", "ко", "о", "об", "обо",
-    "от", "ото", "до", "из", "изо", "за", "у", "без", "безо",
-    "над", "под", "при", "про", "и", "а", "но", "да", "или", "не",
+    "с",
+    "со",
+    "в",
+    "во",
+    "на",
+    "по",
+    "к",
+    "ко",
+    "о",
+    "об",
+    "обо",
+    "от",
+    "ото",
+    "до",
+    "из",
+    "изо",
+    "за",
+    "у",
+    "без",
+    "безо",
+    "над",
+    "под",
+    "при",
+    "про",
+    "и",
+    "а",
+    "но",
+    "да",
+    "или",
+    "не",
 }
 
 
@@ -89,7 +118,13 @@ class AnimatedLabel(QWidget):
             return
         self._old_text = self._text
         self._text = new_text
-        if not self._old_text or self._old_text in ["--°C", "Нет данных", "—", "", "--"]:
+        if not self._old_text or self._old_text in [
+            "--°C",
+            "Нет данных",
+            "—",
+            "",
+            "--",
+        ]:
             self._progress = 1.0
             self.updateGeometry()
             self.update()
@@ -184,7 +219,9 @@ class AnimatedLabel(QWidget):
                 line_w = fm.horizontalAdvance(line)
                 if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                     lx = w - line_w
-                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
+                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(
+                    self._alignment & Qt.AlignmentFlag.AlignHCenter
+                ):
                     lx = (w - line_w) / 2.0
                 else:
                     lx = 0.0
@@ -205,7 +242,9 @@ class AnimatedLabel(QWidget):
                 line_w = fm.horizontalAdvance(line)
                 if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                     lx = w - line_w
-                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
+                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(
+                    self._alignment & Qt.AlignmentFlag.AlignHCenter
+                ):
                     lx = (w - line_w) / 2.0
                 else:
                     lx = 0.0
@@ -234,7 +273,9 @@ class AnimatedLabel(QWidget):
             line_w = fm.horizontalAdvance(line)
             if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                 cur_x = w - line_w
-            elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
+            elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(
+                self._alignment & Qt.AlignmentFlag.AlignHCenter
+            ):
                 cur_x = (w - line_w) / 2.0
             else:
                 cur_x = 0.0
@@ -243,13 +284,21 @@ class AnimatedLabel(QWidget):
 
             for ch in line:
                 ch_w = fm.horizontalAdvance(ch)
-                delay = (char_counter / max(total_chars - 1, 1)) * stagger if total_chars > 1 else 0.0
+                delay = (
+                    (char_counter / max(total_chars - 1, 1)) * stagger
+                    if total_chars > 1
+                    else 0.0
+                )
                 char_t = max(0.0, min(1.0, (t - delay) / duration))
 
                 if char_t > 0.0:
-                    e_t = CUSTOM_BEZIER.valueForProgress(char_t) if char_t < 1.0 else 1.0
+                    e_t = (
+                        CUSTOM_BEZIER.valueForProgress(char_t) if char_t < 1.0 else 1.0
+                    )
                     scale_ch = 0.50 + 0.50 * e_t
-                    op_ch = min(1.0, math.sin(min(1.0, char_t * 1.35) * (math.pi / 2.0)))
+                    op_ch = min(
+                        1.0, math.sin(min(1.0, char_t * 1.35) * (math.pi / 2.0))
+                    )
 
                     ch_center_x = cur_x + ch_w / 2.0
                     ch_center_y = baseline_y - fm.ascent() / 2.0
@@ -290,17 +339,27 @@ class SvgIconWidget(QWidget):
         self.update()
 
     def set_icon(self, icon_code: str | None = None, condition: str | None = None):
-        code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d") or "skc_d"
+        code = (
+            icon_code
+            or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d")
+            or "skc_d"
+        )
         self.icon_code = icon_code
         self.condition = condition
         self._current_code = code
-        self.renderer = get_icon_renderer(icon_code, condition, on_loaded=self._on_icon_loaded)
+        self.renderer = get_icon_renderer(
+            icon_code, condition, on_loaded=self._on_icon_loaded
+        )
         self.old_renderer = None
         self._progress = 1.0
         self.update()
 
     def update_icon(self, icon_code: str | None = None, condition: str | None = None):
-        code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d") or "skc_d"
+        code = (
+            icon_code
+            or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d")
+            or "skc_d"
+        )
         if self._current_code == code and self.renderer is not None:
             self.icon_code = icon_code
             self.condition = condition
@@ -313,7 +372,9 @@ class SvgIconWidget(QWidget):
         self.icon_code = icon_code
         self.condition = condition
         self._current_code = code
-        self.renderer = get_icon_renderer(icon_code, condition, on_loaded=self._on_icon_loaded)
+        self.renderer = get_icon_renderer(
+            icon_code, condition, on_loaded=self._on_icon_loaded
+        )
 
         if self.renderer is None:
             return
@@ -443,9 +504,7 @@ class CompactWeatherWidget(QWidget):
         self.cond_label.setText(cond_name)
         self.icon_widget.update_icon(icon_code, cond)
         self.temp_label.setText(f"{temp}°C" if temp != "--" else "--°C")
-        self.feels_label.setText(
-            f"как {feels_like}°C" if feels_like != "--" else ""
-        )
+        self.feels_label.setText(f"как {feels_like}°C" if feels_like != "--" else "")
 
     def set_error(self, message: str):
         self.cond_label.setText(message)
@@ -581,7 +640,8 @@ class FullWeatherWidget(QWidget):
             font_size=48,
             font_weight=400,
             color=QColor(255, 255, 255, int(255 * 0.85)),
-            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft)
+            | Qt.AlignmentFlag.AlignVCenter,
             word_wrap=True,
             parent=self,
         )
@@ -590,14 +650,17 @@ class FullWeatherWidget(QWidget):
 
         temp_box = QVBoxLayout()
         temp_box.setSpacing(2)
-        temp_box.setAlignment(Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter)
+        temp_box.setAlignment(
+            Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self.temp_label = AnimatedLabel(
             "--°C",
             font_size=80,
             font_weight=700,
             color=QColor(255, 255, 255, int(255 * 0.95)),
-            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft)
+            | Qt.AlignmentFlag.AlignVCenter,
             parent=self,
         )
 
@@ -607,7 +670,8 @@ class FullWeatherWidget(QWidget):
             font_weight=400,
             italic=True,
             color=QColor(255, 255, 255, int(255 * 0.75)),
-            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft)
+            | Qt.AlignmentFlag.AlignVCenter,
             parent=self,
         )
 
@@ -616,7 +680,9 @@ class FullWeatherWidget(QWidget):
 
         self.hero_layout.addStretch(1)
         self.hero_layout.addWidget(
-            self.cond_label, 0, Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter
+            self.cond_label,
+            0,
+            Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
         )
         self.hero_layout.addWidget(self.main_icon, 0, Qt.AlignmentFlag.AlignCenter)
         self.hero_layout.addLayout(temp_box, 0)
@@ -672,9 +738,7 @@ class FullWeatherWidget(QWidget):
         self.main_icon.update_icon(icon_code, cond)
         self.cond_label.setText(cond_name)
         self.temp_label.setText(f"{temp}°C" if temp != "--" else "--°C")
-        self.feels_label.setText(
-            f"как {feels_like}°C" if feels_like != "--" else ""
-        )
+        self.feels_label.setText(f"как {feels_like}°C" if feels_like != "--" else "")
 
         wind_str = f"{str(wind_speed).replace('.', ',')} м/с {wind_arrow}".strip()
         self.wind_item.set_value(wind_str)
