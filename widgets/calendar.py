@@ -45,7 +45,7 @@ class CalendarWidget(QWidget):
             self.current_date = today
             self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.setRenderHint(QPainter.TextAntialiasing, True)
@@ -72,7 +72,7 @@ class CalendarWidget(QWidget):
         painter.setPen(header_color)
         painter.drawText(
             QRectF(0.0, 0.0, w - 12.0, body_y),
-            Qt.AlignRight | Qt.AlignVCenter,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
             header_text,
         )
 
@@ -92,7 +92,7 @@ class CalendarWidget(QWidget):
         painter.setClipPath(weekdays_path)
 
         weekday_bg = QColor(31, 31, 31, 230)
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(weekday_bg)
         painter.drawRect(QRectF(0.0, body_y, w, weekdays_h))
 
@@ -111,7 +111,7 @@ class CalendarWidget(QWidget):
             else:
                 painter.setPen(QColor(255, 255, 255, 153))
 
-            painter.drawText(cell_rect, Qt.AlignCenter, wd)
+            painter.drawText(cell_rect, Qt.AlignmentFlag.AlignCenter, wd)
 
             if i < 6:
                 painter.setPen(
@@ -128,7 +128,7 @@ class CalendarWidget(QWidget):
         painter.restore()
 
         painter.setPen(border_pen)
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(weekdays_path)
 
         days_y = body_y + weekdays_h
@@ -150,7 +150,7 @@ class CalendarWidget(QWidget):
         painter.setClipPath(days_path)
 
         days_bg = QColor(31, 31, 31, 224)
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(days_bg)
         painter.drawRect(QRectF(0.0, days_y, w, days_h))
 
@@ -185,7 +185,7 @@ class CalendarWidget(QWidget):
                     painter.fillRect(cell_rect, QColor(239, 68, 68))
                     painter.setPen(QColor(255, 255, 255))
                     painter.setFont(day_font_bold)
-                    painter.drawText(cell_rect, Qt.AlignCenter, str(d.day))
+                    painter.drawText(cell_rect, Qt.AlignmentFlag.AlignCenter, str(d.day))
                 else:
                     if is_weekend:
                         painter.fillRect(cell_rect, QColor(239, 68, 68, 10))
@@ -203,7 +203,7 @@ class CalendarWidget(QWidget):
                         else:
                             painter.setPen(QColor(90, 90, 90))
 
-                    painter.drawText(cell_rect, Qt.AlignCenter, str(d.day))
+                    painter.drawText(cell_rect, Qt.AlignmentFlag.AlignCenter, str(d.day))
 
                 if col_idx < 6:
                     painter.setPen(
@@ -224,5 +224,5 @@ class CalendarWidget(QWidget):
         painter.restore()
 
         painter.setPen(border_pen)
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(days_path)

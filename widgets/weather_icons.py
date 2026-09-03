@@ -35,8 +35,10 @@ def _download_icon(code: str, callback=None):
             _PENDING_DOWNLOADS.discard(code)
 
 
-def get_icon_renderer(icon_code: str = None, condition: str = None, on_loaded=None) -> QSvgRenderer:
-    code = icon_code or CONDITION_TO_ICON.get(condition, "skc_d")
+def get_icon_renderer(
+    icon_code: str | None = None, condition: str | None = None, on_loaded=None
+) -> QSvgRenderer | None:
+    code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d")
     if not code:
         code = "skc_d"
 

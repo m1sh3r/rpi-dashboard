@@ -7,9 +7,9 @@ os.environ["QT_SCALE_FACTOR"] = "1"
 os.environ["QT_FONT_DPI"] = "96"
 
 if sys.platform == "win32":
-    try:
-        import ctypes
+    import ctypes
 
+    try:
         ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
     except Exception:
         try:
@@ -82,8 +82,8 @@ class DashboardWindow(QWidget):
         self.transition_progress = 1.0 if mock_pc else 0.0
 
         self.setWindowTitle("RPI Dashboard")
-        self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedSize(1920, 480)
         self.setStyleSheet("DashboardWindow { color: #ffffff; }")
 
@@ -109,7 +109,7 @@ class DashboardWindow(QWidget):
         self.pc_status_opacity = QGraphicsOpacityEffect(self.pc_status)
         self.pc_status.setGraphicsEffect(self.pc_status_opacity)
 
-        self.center_layout.addWidget(self.weather, 0, Qt.AlignTop)
+        self.center_layout.addWidget(self.weather, 0, Qt.AlignmentFlag.AlignTop)
         self.center_layout.addWidget(self.pc_status, 1)
 
         main_layout.addWidget(center_container, 1)
@@ -157,11 +157,11 @@ class DashboardWindow(QWidget):
                 self._on_weather_updated(cached)
             self.weather_client.update_weather()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         self.effects.setGeometry(self.rect())
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
         w = float(self.width())
@@ -172,28 +172,30 @@ class DashboardWindow(QWidget):
         grad.setColorAt(1.0, self.bg_end)
         painter.fillPath(path, QBrush(grad))
 
-    def keyPressEvent(self, event: QKeyEvent):
-        key = event.key()
-        if key in (Qt.Key_Escape, Qt.Key_Q):
+    def keyPressEvent(self, a0: QKeyEvent | None):
+        if a0 is None:
+            return
+        key = a0.key()
+        if key in (Qt.Key.Key_Escape, Qt.Key.Key_Q):
             self.close()
-        elif key in (Qt.Key_O, Qt.Key_P):
+        elif key in (Qt.Key.Key_O, Qt.Key.Key_P):
             self.pc_client.toggle_mock_online()
         elif self.mock_weather:
-            if key in (Qt.Key_Space, Qt.Key_Right):
+            if key in (Qt.Key.Key_Space, Qt.Key.Key_Right):
                 self.mock_index = (self.mock_index + 1) % len(MOCK_CONDITIONS)
                 self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
-            elif key == Qt.Key_Left:
+            elif key == Qt.Key.Key_Left:
                 self.mock_index = (self.mock_index - 1) % len(MOCK_CONDITIONS)
                 self._apply_mock_condition(MOCK_CONDITIONS[self.mock_index])
-            elif key == Qt.Key_R:
+            elif key == Qt.Key.Key_R:
                 self._next_random_weather()
-            elif key == Qt.Key_A and hasattr(self, "auto_timer"):
+            elif key == Qt.Key.Key_A and hasattr(self, "auto_timer"):
                 if self.auto_timer.isActive():
                     self.auto_timer.stop()
                 else:
                     self.auto_timer.start(5000)
         else:
-            super().keyPressEvent(event)
+            super().keyPressEvent(a0)
 
     def _next_random_weather(self):
         cond = random.choice(MOCK_CONDITIONS)
@@ -269,7 +271,7 @@ class DashboardWindow(QWidget):
         if self.bg_start == target_start and self.bg_end == target_end:
             return
 
-        if hasattr(self, "bg_anim") and self.bg_anim and self.bg_anim.state() == QVariantAnimation.Running:
+        if hasattr(self, "bg_anim") and self.bg_anim and self.bg_anim.state() == QVariantAnimation.State.Running:
             self.bg_anim.stop()
 
         start_c1, end_c1 = self.bg_start, target_start
@@ -329,12 +331,12 @@ class DashboardWindow(QWidget):
         target_p = 1.0 if is_online else 0.0
 
         if not animated:
-            if self.online_transition_anim.state() == QVariantAnimation.Running:
+            if self.online_transition_anim.state() == QVariantAnimation.State.Running:
                 self.online_transition_anim.stop()
             self._on_online_anim_step(target_p)
             return
 
-        if self.online_transition_anim.state() == QVariantAnimation.Running:
+        if self.online_transition_anim.state() == QVariantAnimation.State.Running:
             self.online_transition_anim.stop()
 
         self.online_transition_anim.setStartValue(self.transition_progress)
@@ -349,18 +351,18 @@ def main():
     parser.add_argument("--auto-switch", type=float, default=0.0)
     args, _ = parser.parse_known_args()
 
-    if hasattr(Qt, "AA_DisableHighDpiScaling"):
-        QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
-    if hasattr(Qt, "AA_EnableHighDpiScaling"):
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, False)
-    if hasattr(Qt, "AA_Use96Dpi"):
-        QApplication.setAttribute(Qt.AA_Use96Dpi, True)
+    if hasattr(Qt.ApplicationAttribute, "AA_DisableHighDpiScaling"):
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_DisableHighDpiScaling, True)
+    if hasattr(Qt.ApplicationAttribute, "AA_EnableHighDpiScaling"):
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, False)
+    if hasattr(Qt.ApplicationAttribute, "AA_Use96Dpi"):
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_Use96Dpi, True)
 
     app = QApplication(sys.argv)
     load_fonts()
     app.setFont(get_inter_font(12, weight=400))
     if not (args.mock_weather or args.mock_pc):
-        app.setOverrideCursor(Qt.BlankCursor)
+        app.setOverrideCursor(Qt.CursorShape.BlankCursor)
     window = DashboardWindow(
         mock_weather=args.mock_weather,
         mock_pc=args.mock_pc,

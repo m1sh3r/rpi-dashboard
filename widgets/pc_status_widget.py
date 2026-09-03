@@ -36,7 +36,7 @@ def format_gb(bytes_val: float) -> str:
     return f"{format_number(gb, 2)} ГБ"
 
 
-def format_temperature(temp_val: float) -> str:
+def format_temperature(temp_val: float | None) -> str:
     if temp_val is None or temp_val <= 0 or not math.isfinite(float(temp_val)):
         return "н/д"
     return f"{format_number(temp_val, 1)} °C"
@@ -62,7 +62,9 @@ def format_duration(seconds: int) -> str:
     return f"{days}:{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
-def clamp_percent(value: float) -> float:
+def clamp_percent(value: float | None) -> float:
+    if value is None:
+        return 0.0
     try:
         val = float(value)
         if not math.isfinite(val):
@@ -110,7 +112,7 @@ class MetricCard(QWidget):
             self.history = padded
         self.update()
 
-    def set_content(self, main_val: str, sub_vals: list[str] = None):
+    def set_content(self, main_val: str, sub_vals: list[str] | None = None):
         self.main_value = main_val
         self.sub_values = sub_vals or []
         self.update()
@@ -127,7 +129,7 @@ class MetricCard(QWidget):
             return height + 10.0
         return height - (pct / 100.0) * height
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.setRenderHint(QPainter.TextAntialiasing, True)
@@ -172,18 +174,18 @@ class MetricCard(QWidget):
                 line_path.lineTo(points[i].x(), points[i].y())
             line_path.lineTo(w + 2.0, self._get_chart_y(self.history[-1], h))
 
-            line_pen = QPen(self.color_line, 1.2, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+            line_pen = QPen(self.color_line, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin)
             painter.strokePath(line_path, line_pen)
 
         painter.setClipping(False)
 
         inactive_pen = QPen(QColor(255, 255, 255, 14), 1.0)
         painter.setPen(inactive_pen)
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), r, r)
 
         if max(self.history) > 1.5:
-            active_pen = QPen(self.color_border, 1.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+            active_pen = QPen(self.color_border, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
             painter.setPen(active_pen)
             painter.drawRoundedRect(rect.adjusted(0.6, 0.6, -0.6, -0.6), r, r)
 
@@ -214,7 +216,7 @@ class MetricCard(QWidget):
             cap_w = fm_cap.horizontalAdvance(self.caption)
             max_cap_w = w - padding_x * 2.0
             if cap_w > max_cap_w:
-                elided = fm_cap.elidedText(self.caption, Qt.ElideRight, max_cap_w)
+                elided = fm_cap.elidedText(self.caption, Qt.TextElideMode.ElideRight, max_cap_w)
                 elided_w = fm_cap.horizontalAdvance(elided)
                 painter.drawText(QPointF((w - elided_w) / 2.0, h - padding_y), elided)
             else:

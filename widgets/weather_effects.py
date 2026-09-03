@@ -57,9 +57,9 @@ CLOUD_CONFIG = {
 class WeatherEffectsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.setAttribute(Qt.WA_NoSystemBackground, True)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         self.condition = "clear"
         self.wind_speed = 2.0
@@ -87,7 +87,7 @@ class WeatherEffectsWidget(QWidget):
     def _create_cloud_texture(self, size: int):
         from PyQt5.QtGui import QPixmap
         pix = QPixmap(size, size)
-        pix.fill(Qt.transparent)
+        pix.fill(Qt.GlobalColor.transparent)
         p = QPainter(pix)
         p.setRenderHint(QPainter.Antialiasing, True)
         half = size / 2.0
@@ -95,7 +95,7 @@ class WeatherEffectsWidget(QWidget):
         grad.setColorAt(0.0, QColor(180, 195, 215, 200))
         grad.setColorAt(0.5, QColor(150, 165, 185, 90))
         grad.setColorAt(1.0, QColor(150, 165, 185, 0))
-        p.setPen(Qt.NoPen)
+        p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QBrush(grad))
         p.drawEllipse(0, 0, size, size)
         p.end()
@@ -386,7 +386,7 @@ class WeatherEffectsWidget(QWidget):
 
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -402,7 +402,7 @@ class WeatherEffectsWidget(QWidget):
             if op <= 0:
                 continue
             pen = QPen(QColor(220, 230, 255, int(op * 255)), bolt["width"])
-            pen.setCapStyle(Qt.RoundCap)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
             for x1, y1, x2, y2, is_branch in bolt["segments"]:
                 if is_branch:
@@ -421,12 +421,12 @@ class WeatherEffectsWidget(QWidget):
             ptype = p["type"]
             if ptype == "rain":
                 pen = QPen(QColor(174, 194, 224, int(op * 255)), p["width"])
-                pen.setCapStyle(Qt.RoundCap)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 painter.setPen(pen)
                 painter.drawLine(QPointF(p["x"], p["y"]), QPointF(p["x"] + p["dx"], p["y"] + p["dy"]))
 
             elif ptype == "snow":
-                painter.setPen(Qt.NoPen)
+                painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QColor(255, 255, 255, int(op * 255)))
                 painter.drawEllipse(QPointF(p["x"], p["y"]), p["radius"], p["radius"])
 
@@ -448,7 +448,7 @@ class WeatherEffectsWidget(QWidget):
                 painter.restore()
 
 
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         for s in self.splashes:
             alpha = int(s["life"] * 255)
             col = QColor(s["color"])

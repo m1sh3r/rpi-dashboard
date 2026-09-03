@@ -17,8 +17,8 @@ class Config:
 
     WEATHER_REFRESH_MS = int(os.getenv("WEATHER_REFRESH_MS", "300000"))
 
-    WEATHER_LAT = float(os.getenv("WEATHER_LAT")) if os.getenv("WEATHER_LAT") else None
-    WEATHER_LON = float(os.getenv("WEATHER_LON")) if os.getenv("WEATHER_LON") else None
+    WEATHER_LAT: float | None = float(v) if (v := os.getenv("WEATHER_LAT")) else None
+    WEATHER_LON: float | None = float(v) if (v := os.getenv("WEATHER_LON")) else None
 
     DASHBOARD_LOCALE = os.getenv("DASHBOARD_LOCALE", "ru_RU")
     WEEK_STARTS_ON = int(os.getenv("WEEK_STARTS_ON", "1"))

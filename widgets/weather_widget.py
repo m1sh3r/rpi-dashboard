@@ -47,9 +47,11 @@ class AnimatedLabel(QWidget):
         font_weight: int = 400,
         italic: bool = False,
         color: QColor = QColor(255, 255, 255, 220),
-        alignment: Qt.Alignment = Qt.AlignLeft | Qt.AlignVCenter,
+        alignment: Qt.Alignment | Qt.AlignmentFlag = (
+            Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter
+        ),
         word_wrap: bool = False,
-        parent: QWidget = None,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
         self._text = text
@@ -63,21 +65,20 @@ class AnimatedLabel(QWidget):
         self._progress = 1.0
 
         f = get_inter_font(
-            size=font_size,
-            weight=font_weight,
-            italic=italic,
+            self._font_size,
+            weight=self._font_weight,
+            italic=self._italic,
             is_pixel_size=True,
         )
         self.setFont(f)
 
         self.anim = QVariantAnimation(self)
-        self.anim.setDuration(600)
-        self.anim.setEasingCurve(QEasingCurve.Linear)
+        self.anim.setDuration(400)
+        self.anim.setEasingCurve(QEasingCurve.OutCubic)
         self.anim.valueChanged.connect(self._on_anim_step)
 
     def _on_anim_step(self, val):
         self._progress = float(val)
-        self.updateGeometry()
         self.update()
 
     def text(self) -> str:
@@ -93,7 +94,7 @@ class AnimatedLabel(QWidget):
             self.updateGeometry()
             self.update()
             return
-        if self.anim.state() == QVariantAnimation.Running:
+        if self.anim.state() == QVariantAnimation.State.Running:
             self.anim.stop()
         self.anim.setStartValue(0.0)
         self.anim.setEndValue(1.0)
@@ -159,7 +160,7 @@ class AnimatedLabel(QWidget):
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.setRenderHint(QPainter.TextAntialiasing, True)
@@ -181,9 +182,9 @@ class AnimatedLabel(QWidget):
             start_y = (h - total_h) / 2.0 + fm.ascent()
             for row_idx, line in enumerate(lines):
                 line_w = fm.horizontalAdvance(line)
-                if self._alignment & Qt.AlignRight:
+                if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                     lx = w - line_w
-                elif self._alignment & Qt.AlignCenter or self._alignment & Qt.AlignHCenter:
+                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
                     lx = (w - line_w) / 2.0
                 else:
                     lx = 0.0
@@ -202,9 +203,9 @@ class AnimatedLabel(QWidget):
 
             for row_idx, line in enumerate(lines_old):
                 line_w = fm.horizontalAdvance(line)
-                if self._alignment & Qt.AlignRight:
+                if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                     lx = w - line_w
-                elif self._alignment & Qt.AlignCenter or self._alignment & Qt.AlignHCenter:
+                elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
                     lx = (w - line_w) / 2.0
                 else:
                     lx = 0.0
@@ -231,9 +232,9 @@ class AnimatedLabel(QWidget):
         char_counter = 0
         for row_idx, line in enumerate(lines_new):
             line_w = fm.horizontalAdvance(line)
-            if self._alignment & Qt.AlignRight:
+            if bool(self._alignment & Qt.AlignmentFlag.AlignRight):
                 cur_x = w - line_w
-            elif self._alignment & Qt.AlignCenter or self._alignment & Qt.AlignHCenter:
+            elif bool(self._alignment & Qt.AlignmentFlag.AlignCenter) or bool(self._alignment & Qt.AlignmentFlag.AlignHCenter):
                 cur_x = (w - line_w) / 2.0
             else:
                 cur_x = 0.0
@@ -288,8 +289,8 @@ class SvgIconWidget(QWidget):
         self._progress = float(val)
         self.update()
 
-    def set_icon(self, icon_code: str = None, condition: str = None):
-        code = icon_code or CONDITION_TO_ICON.get(condition, "skc_d") or "skc_d"
+    def set_icon(self, icon_code: str | None = None, condition: str | None = None):
+        code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d") or "skc_d"
         self.icon_code = icon_code
         self.condition = condition
         self._current_code = code
@@ -298,8 +299,8 @@ class SvgIconWidget(QWidget):
         self._progress = 1.0
         self.update()
 
-    def update_icon(self, icon_code: str = None, condition: str = None):
-        code = icon_code or CONDITION_TO_ICON.get(condition, "skc_d") or "skc_d"
+    def update_icon(self, icon_code: str | None = None, condition: str | None = None):
+        code = icon_code or (CONDITION_TO_ICON.get(condition, "skc_d") if condition else "skc_d") or "skc_d"
         if self._current_code == code and self.renderer is not None:
             self.icon_code = icon_code
             self.condition = condition
@@ -323,7 +324,7 @@ class SvgIconWidget(QWidget):
             self.update()
             return
 
-        if self.anim.state() == QVariantAnimation.Running:
+        if self.anim.state() == QVariantAnimation.State.Running:
             self.anim.stop()
         self._progress = 0.0
         self.anim.setStartValue(0.0)
@@ -335,7 +336,7 @@ class SvgIconWidget(QWidget):
         if new_renderer and new_renderer.isValid():
             if self.old_renderer and self.old_renderer != new_renderer:
                 self.renderer = new_renderer
-                if self.anim.state() == QVariantAnimation.Running:
+                if self.anim.state() == QVariantAnimation.State.Running:
                     self.anim.stop()
                 self._progress = 0.0
                 self.anim.setStartValue(0.0)
@@ -347,7 +348,7 @@ class SvgIconWidget(QWidget):
                 self._progress = 1.0
                 self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.setClipRect(self.rect())
@@ -397,7 +398,7 @@ class CompactWeatherWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(14)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.cond_label = AnimatedLabel(
             "Нет данных",
@@ -461,14 +462,14 @@ class ForecastDayWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.day_label = AnimatedLabel(
             "",
             font_size=20,
             font_weight=500,
             color=QColor(255, 255, 255, int(255 * 0.65)),
-            alignment=Qt.AlignCenter,
+            alignment=Qt.AlignmentFlag.AlignCenter,
             parent=self,
         )
 
@@ -478,14 +479,14 @@ class ForecastDayWidget(QWidget):
         temp_layout = QHBoxLayout(temp_container)
         temp_layout.setContentsMargins(0, 0, 0, 0)
         temp_layout.setSpacing(4)
-        temp_layout.setAlignment(Qt.AlignCenter)
+        temp_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.max_temp_label = AnimatedLabel(
             "",
             font_size=24,
             font_weight=600,
             color=QColor(255, 255, 255, int(255 * 0.85)),
-            alignment=Qt.AlignCenter,
+            alignment=Qt.AlignmentFlag.AlignCenter,
             parent=temp_container,
         )
 
@@ -498,7 +499,7 @@ class ForecastDayWidget(QWidget):
             font_size=22,
             font_weight=400,
             color=QColor(255, 255, 255, int(255 * 0.55)),
-            alignment=Qt.AlignCenter,
+            alignment=Qt.AlignmentFlag.AlignCenter,
             parent=temp_container,
         )
 
@@ -507,7 +508,7 @@ class ForecastDayWidget(QWidget):
         temp_layout.addWidget(self.min_temp_label)
 
         layout.addWidget(self.day_label)
-        layout.addWidget(self.icon_widget, 0, Qt.AlignCenter)
+        layout.addWidget(self.icon_widget, 0, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(temp_container)
 
     def set_day_data(
@@ -516,7 +517,7 @@ class ForecastDayWidget(QWidget):
         min_t: int,
         max_t: int,
         condition: str,
-        icon_code: str = None,
+        icon_code: str | None = None,
     ):
         self.day_label.setText(day_name.upper())
         self.icon_widget.update_icon(icon_code, condition)
@@ -539,7 +540,7 @@ class DetailItemWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.label = QLabel(title, self)
         self.label.setFont(get_inter_font(24, weight=500, is_pixel_size=True))
@@ -569,18 +570,18 @@ class FullWeatherWidget(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(20, 10, 20, 10)
         self.main_layout.setSpacing(20)
-        self.main_layout.setAlignment(Qt.AlignCenter)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.hero_layout = QHBoxLayout()
         self.hero_layout.setSpacing(40)
-        self.hero_layout.setAlignment(Qt.AlignCenter)
+        self.hero_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.cond_label = AnimatedLabel(
             "Нет данных",
             font_size=48,
             font_weight=400,
             color=QColor(255, 255, 255, int(255 * 0.85)),
-            alignment=Qt.AlignLeft | Qt.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
             word_wrap=True,
             parent=self,
         )
@@ -589,14 +590,14 @@ class FullWeatherWidget(QWidget):
 
         temp_box = QVBoxLayout()
         temp_box.setSpacing(2)
-        temp_box.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        temp_box.setAlignment(Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter)
 
         self.temp_label = AnimatedLabel(
             "--°C",
             font_size=80,
             font_weight=700,
             color=QColor(255, 255, 255, int(255 * 0.95)),
-            alignment=Qt.AlignLeft | Qt.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
             parent=self,
         )
 
@@ -606,7 +607,7 @@ class FullWeatherWidget(QWidget):
             font_weight=400,
             italic=True,
             color=QColor(255, 255, 255, int(255 * 0.75)),
-            alignment=Qt.AlignLeft | Qt.AlignVCenter,
+            alignment=Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter,
             parent=self,
         )
 
@@ -614,8 +615,10 @@ class FullWeatherWidget(QWidget):
         temp_box.addWidget(self.feels_label)
 
         self.hero_layout.addStretch(1)
-        self.hero_layout.addWidget(self.cond_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        self.hero_layout.addWidget(self.main_icon, 0, Qt.AlignCenter)
+        self.hero_layout.addWidget(
+            self.cond_label, 0, Qt.Alignment(Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter
+        )
+        self.hero_layout.addWidget(self.main_icon, 0, Qt.AlignmentFlag.AlignCenter)
         self.hero_layout.addLayout(temp_box, 0)
         self.hero_layout.addStretch(1)
 
@@ -623,7 +626,7 @@ class FullWeatherWidget(QWidget):
 
         self.details_layout = QHBoxLayout()
         self.details_layout.setSpacing(32)
-        self.details_layout.setAlignment(Qt.AlignCenter)
+        self.details_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.wind_item = DetailItemWidget("ВЕТЕР", self)
         self.humidity_item = DetailItemWidget("ВЛАЖНОСТЬ", self)
@@ -724,8 +727,8 @@ class WeatherWidget(QWidget):
         self.compact.hide()
         self.full.show()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         w = self.width()
         self.compact.setGeometry(0, 0, w, 70)
         self.full.setGeometry(0, 0, w, 460)

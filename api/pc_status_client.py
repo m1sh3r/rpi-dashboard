@@ -22,7 +22,8 @@ if sys.platform == "win32":
         try:
             buf = ctypes.create_unicode_buffer(2048)
             n = ctypes.windll.kernel32.GetLogicalDriveStringsW(ctypes.sizeof(buf), buf)
-            drives = [d for d in buf[:n].split("\x00") if d]
+            raw_str = ctypes.wstring_at(ctypes.addressof(buf), n)
+            drives = [d for d in raw_str.split("\x00") if d]
             for d in drives:
                 dtype = ctypes.windll.kernel32.GetDriveTypeW(d)
                 if dtype == 3:
@@ -117,8 +118,8 @@ class PcStatusServerThread(QThread):
         self.token = token
         self.stale_after_ms = stale_after_ms
         self.httpd = None
-        self.last_payload = None
-        self.updated_at = None
+        self.last_payload: dict | None = None
+        self.updated_at: str | None = None
         self.last_received_ts = 0.0
 
     def run(self):
