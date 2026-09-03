@@ -102,12 +102,13 @@ class AnimatedLabel(QWidget):
         self.setFont(f)
 
         self.anim = QVariantAnimation(self)
-        self.anim.setDuration(400)
-        self.anim.setEasingCurve(QEasingCurve.OutCubic)
+        self.anim.setDuration(600)
+        self.anim.setEasingCurve(QEasingCurve.Linear)
         self.anim.valueChanged.connect(self._on_anim_step)
 
     def _on_anim_step(self, val):
         self._progress = float(val)
+        self.updateGeometry()
         self.update()
 
     def text(self) -> str:
