@@ -156,7 +156,12 @@ class CalendarWidget(QWidget):
 
         cal = calendar.Calendar(firstweekday=0)
         month_days = cal.monthdatescalendar(year, month)
-        row_count = max(len(month_days), 6)
+        while len(month_days) < 6:
+            last_date = month_days[-1][-1]
+            month_days.append(
+                [last_date + datetime.timedelta(days=i) for i in range(1, 8)]
+            )
+        row_count = 6
         row_h = days_h / float(row_count)
 
         day_font_normal = get_inter_font(24, weight=400)
@@ -164,15 +169,12 @@ class CalendarWidget(QWidget):
         day_font_light = get_inter_font(22, weight=300)
 
         for row_idx in range(row_count):
-            week = month_days[row_idx] if row_idx < len(month_days) else []
+            week = month_days[row_idx]
             for col_idx in range(7):
-                if col_idx < len(week):
-                    d = week[col_idx]
-                else:
-                    d = datetime.date(year, month, 1)
+                d = week[col_idx]
 
-                is_today = d == today and col_idx < len(week)
-                is_curr_month = d.month == month and col_idx < len(week)
+                is_today = d == today
+                is_curr_month = d.month == month and d.year == year
                 is_weekend = col_idx >= 5
 
                 x = col_idx * col_w
