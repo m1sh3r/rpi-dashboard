@@ -29,6 +29,84 @@ WMO_TO_YANDEX_CONDITION = {
     99: "thunderstorm-with-hail",
 }
 
+OWM_TO_CONDITION = {
+    200: "thunderstorm-with-rain",
+    201: "thunderstorm-with-rain",
+    202: "thunderstorm-with-rain",
+    210: "thunderstorm",
+    211: "thunderstorm",
+    212: "thunderstorm",
+    221: "thunderstorm",
+    230: "thunderstorm-with-rain",
+    231: "thunderstorm-with-rain",
+    232: "thunderstorm-with-rain",
+    300: "light-rain",
+    301: "light-rain",
+    302: "rain",
+    310: "light-rain",
+    311: "light-rain",
+    312: "rain",
+    313: "showers",
+    314: "showers",
+    321: "showers",
+    500: "light-rain",
+    501: "rain",
+    502: "heavy-rain",
+    503: "heavy-rain",
+    504: "heavy-rain",
+    511: "sleet",
+    520: "showers",
+    521: "showers",
+    522: "showers",
+    531: "showers",
+    600: "light-snow",
+    601: "snow",
+    602: "snowfall",
+    611: "sleet",
+    612: "sleet",
+    613: "sleet",
+    615: "sleet",
+    616: "sleet",
+    620: "light-snow",
+    621: "snow",
+    622: "snowfall",
+    701: "fog",
+    711: "smog",
+    721: "fog",
+    731: "dust",
+    741: "fog",
+    751: "dust",
+    761: "dust",
+    762: "volcano",
+    771: "storm",
+    781: "storm",
+    800: "clear",
+    801: "partly-cloudy",
+    802: "partly-cloudy",
+    803: "cloudy",
+    804: "overcast",
+}
+
+
+def owm_code_to_condition(code: int) -> str:
+    if code in OWM_TO_CONDITION:
+        return OWM_TO_CONDITION[code]
+    if 200 <= code < 300:
+        return "thunderstorm"
+    if 300 <= code < 400:
+        return "light-rain"
+    if 500 <= code < 600:
+        return "rain"
+    if 600 <= code < 700:
+        return "snow"
+    if 700 <= code < 800:
+        return "fog"
+    if code == 800:
+        return "clear"
+    if code > 800:
+        return "cloudy"
+    return "clear"
+
 CONDITION_TO_ICON = {
     "clear": "skc_d",
     "partly-cloudy": "bkn_d",

@@ -23,6 +23,7 @@ class Config:
 
     WEATHER_LAT: float | None = float(v) if (v := os.getenv("WEATHER_LAT")) else None
     WEATHER_LON: float | None = float(v) if (v := os.getenv("WEATHER_LON")) else None
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
     DASHBOARD_LOCALE = os.getenv("DASHBOARD_LOCALE", "ru_RU")
     WEEK_STARTS_ON = int(os.getenv("WEEK_STARTS_ON", "1"))
