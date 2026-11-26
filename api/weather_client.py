@@ -1,6 +1,5 @@
 import datetime
 import json
-import time
 from pathlib import Path
 import requests
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
@@ -8,10 +7,10 @@ from config import config
 from .constants import (
     CONDITION_TO_ICON,
     WEEKDAYS_SHORT,
+    WMO_TO_YANDEX_CONDITION,
     YANDEX_CONDITION_NAMES,
     degree_to_wind_arrow,
     degree_to_wind_direction,
-    owm_code_to_condition,
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,106 +19,75 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_FILE = CACHE_DIR / "weather_cache.json"
 
 
-def fetch_openweathermap(lat: float, lon: float, api_key: str) -> dict:
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "rpi-dashboard/1.0 (https://github.com/mucxep/rpi-dashboard)"
-    })
-
-    current_resp = session.get(
-        "https://api.openweathermap.org/data/2.5/weather",
+def fetch_open_meteo(lat: float, lon: float) -> dict:
+    resp = requests.get(
+        "https://api.open-meteo.com/v1/forecast",
         params={
-            "lat": lat,
-            "lon": lon,
-            "appid": api_key,
-            "units": "metric",
-            "lang": "ru",
+            "latitude": lat,
+            "longitude": lon,
+            "current": (
+                "temperature_2m,apparent_temperature,relative_humidity_2m,"
+                "pressure_msl,wind_speed_10m,wind_direction_10m,weather_code"
+            ),
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min",
+            "wind_speed_unit": "ms",
+            "timezone": "auto",
+            "forecast_days": 6,
+        },
+        headers={
+            "User-Agent": "rpi-dashboard/1.0 (https://github.com/mucxep/rpi-dashboard)"
         },
         timeout=10,
     )
-    current_resp.raise_for_status()
-    current_data = current_resp.json()
+    resp.raise_for_status()
+    data = resp.json()
 
-    forecast_resp = session.get(
-        "https://api.openweathermap.org/data/2.5/forecast",
-        params={
-            "lat": lat,
-            "lon": lon,
-            "appid": api_key,
-            "units": "metric",
-            "lang": "ru",
-        },
-        timeout=10,
-    )
-    forecast_resp.raise_for_status()
-    forecast_data = forecast_resp.json()
-
-    weather_list = current_data.get("weather", [])
-    primary_weather = weather_list[0] if weather_list else {}
-    condition = owm_code_to_condition(primary_weather.get("id", 800))
-    desc = primary_weather.get("description", "")
-    condition_name = desc.capitalize() if desc else YANDEX_CONDITION_NAMES.get(condition, "Ясно")
-
-    main_info = current_data.get("main", {})
-    wind_info = current_data.get("wind", {})
-    wind_angle = wind_info.get("deg", 0)
+    current = data.get("current", {})
+    wmo_code = int(current.get("weather_code", 0))
+    condition = WMO_TO_YANDEX_CONDITION.get(wmo_code, "clear")
+    condition_name = YANDEX_CONDITION_NAMES.get(condition, "Ясно")
+    wind_angle = current.get("wind_direction_10m", 0) or 0
 
     fact = {
-        "temp": round(main_info.get("temp", 0)),
+        "temp": round(current.get("temperature_2m", 0)),
         "feels_like": round(
-            main_info.get("feels_like", main_info.get("temp", 0))
+            current.get("apparent_temperature", current.get("temperature_2m", 0))
         ),
         "condition": condition,
         "condition_name": condition_name,
         "icon": CONDITION_TO_ICON.get(condition, "skc_d"),
-        "wind_speed": round(float(wind_info.get("speed", 0)), 1),
+        "wind_speed": round(float(current.get("wind_speed_10m", 0) or 0), 1),
         "wind_dir": degree_to_wind_direction(wind_angle),
         "wind_arrow": degree_to_wind_arrow(wind_angle),
         "wind_angle": wind_angle,
-        "pressure_mm": round(float(main_info.get("pressure", 1013.25)) * 0.750062),
-        "humidity": round(main_info.get("humidity", 50)),
+        "pressure_mm": round(
+            float(current.get("pressure_msl", 1013.25) or 1013.25) * 0.750062
+        ),
+        "humidity": round(current.get("relative_humidity_2m", 50) or 50),
     }
 
-    grouped_days = {}
-    for entry in forecast_data.get("list", []):
-        dt_txt = entry.get("dt_txt", "")
-        if " " not in dt_txt:
-            continue
-        date_str, time_str = dt_txt.split(" ", 1)
-        if date_str not in grouped_days:
-            grouped_days[date_str] = []
-        grouped_days[date_str].append((time_str, entry))
+    daily = data.get("daily", {})
+    dates = daily.get("time", [])
+    codes = daily.get("weather_code", [])
+    max_temps = daily.get("temperature_2m_max", [])
+    min_temps = daily.get("temperature_2m_min", [])
 
-    date_keys = list(grouped_days.keys())
-    selected_dates = date_keys[1:6] if len(date_keys) > 5 else date_keys[:5]
+    start_idx = 1 if len(dates) > 5 else 0
+    end_idx = start_idx + 5
 
     forecast_days = []
-    for date_str in selected_dates:
-        entries = grouped_days[date_str]
-        min_temp = min(
-            e.get("main", {}).get("temp_min", e.get("main", {}).get("temp", 0))
-            for _, e in entries
+    for i in range(start_idx, min(end_idx, len(dates))):
+        date_str = dates[i]
+        f_code = int(codes[i]) if i < len(codes) and codes[i] is not None else 0
+        f_cond = WMO_TO_YANDEX_CONDITION.get(f_code, "clear")
+        f_cond_text = YANDEX_CONDITION_NAMES.get(f_cond, "Ясно")
+        max_temp = (
+            max_temps[i] if i < len(max_temps) and max_temps[i] is not None else 0
         )
-        max_temp = max(
-            e.get("main", {}).get("temp_max", e.get("main", {}).get("temp", 0))
-            for _, e in entries
+        min_temp = (
+            min_temps[i] if i < len(min_temps) and min_temps[i] is not None else 0
         )
 
-        def hour_diff(item):
-            t_str, _ = item
-            try:
-                hour = int(t_str.split(":")[0])
-                return abs(hour - 14)
-            except Exception:
-                return 99
-
-        _, best_entry = min(entries, key=hour_diff)
-        best_w = best_entry.get("weather", [{}])[0]
-        f_cond = owm_code_to_condition(best_w.get("id", 800))
-        f_desc = best_w.get("description", "")
-        f_cond_text = f_desc.capitalize() if f_desc else YANDEX_CONDITION_NAMES.get(f_cond, "Ясно")
-
-        day_name = ""
         try:
             dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
             day_name = WEEKDAYS_SHORT[dt.weekday()]
@@ -138,7 +106,7 @@ def fetch_openweathermap(lat: float, lon: float, api_key: str) -> dict:
             }
         )
 
-    return {"source": "openweathermap", "fact": fact, "forecast": forecast_days}
+    return {"source": "open-meteo", "fact": fact, "forecast": forecast_days}
 
 
 class WeatherWorker(QThread):
@@ -147,16 +115,12 @@ class WeatherWorker(QThread):
 
     def run(self):
         lat, lon = config.WEATHER_LAT, config.WEATHER_LON
-        api_key = config.OPENWEATHER_API_KEY
         if lat is None or lon is None:
             self.failed.emit("Координаты не заданы")
             return
-        if not api_key:
-            self.failed.emit("Не задан OPENWEATHER_API_KEY")
-            return
 
         try:
-            payload = fetch_openweathermap(lat, lon, api_key)
+            payload = fetch_open_meteo(lat, lon)
             try:
                 CACHE_FILE.write_text(json.dumps(payload), encoding="utf-8")
             except Exception:
@@ -202,11 +166,6 @@ class WeatherClient(QObject):
         if config.WEATHER_LAT is None or config.WEATHER_LON is None:
             self.weather_error.emit(
                 "Координаты WEATHER_LAT и WEATHER_LON не заданы в .env"
-            )
-            return
-        if not config.OPENWEATHER_API_KEY:
-            self.weather_error.emit(
-                "API-ключ OPENWEATHER_API_KEY не задан в .env"
             )
             return
         if self.worker and self.worker.isRunning():
